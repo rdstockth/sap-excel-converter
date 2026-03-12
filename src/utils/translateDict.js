@@ -1,6 +1,7 @@
 // ══════════════════════════════════════════════════════════════
-// TAGGED MAINTENANCE DICTIONARY
+// TAGGED MAINTENANCE DICTIONARY (FULL EDITION: UTILITY + AUTOMATION)
 // t: A=Action  C=Component  S=Symptom  L=Location  M=Modifier
+// sys: System Category (Optional for Analytics Dashboard)
 // ══════════════════════════════════════════════════════════════
 export const _dict = Object.freeze({
   // ── Symptoms (S) ──
@@ -12,7 +13,7 @@ export const _dict = Object.freeze({
   "น๊อค":{en:"system crash",t:"S"},"สวิตส์ไฟทิป":{en:"breaker tripped",t:"S"},
   "ไฟตัด":{en:"breaker tripped",t:"S"},"ไฟตก":{en:"voltage drop",t:"S"},
   "ไฟไม่เข้า":{en:"no power supply",t:"S"},"ไฟดับ":{en:"power outage",t:"S"},
-  "เปิดไม่ติด":{en:"cannot power on",t:"S"},"จอดับ":{en:"display blank",t:"S"},
+  "เปิดไม่ติด":{en:"cannot power on",t:"S"},"จอดับ":{en:"blank display",t:"S"},
   "หน้าจอไม่ติด":{en:"display off",t:"S"},"ติดๆดับๆ":{en:"flickering",t:"S"},
   "ค้าง":{en:"jammed",t:"S"},"ติด":{en:"jammed",t:"S"},
   "งัด":{en:"mechanical interference",t:"S"},"หนีบ":{en:"pinched",t:"S"},
@@ -70,12 +71,13 @@ export const _dict = Object.freeze({
   "สแกนไม่ได้":{en:"barcode reading failure",t:"S"},"อ่านบาร์โค๊ตข้างเดียว":{en:"single-side scan failure",t:"S"},
   "ไม่อ่านบาร์โค๊ต":{en:"barcode reader failure",t:"S"},"สัญลักษณ์ขาดหาย":{en:"missing character",t:"S"},
   "ไม่ชัด":{en:"poor print clarity",t:"S"},"กระดาษติด":{en:"media jam",t:"S"},
-  "ไม่ได้ยินเสียง":{en:"audio failure",t:"S"},"สกปรกมาก":{en:"heavy contamination",t:"S"},
-  "สกปรก":{en:"contaminated",t:"S"},"เสื่อม":{en:"degraded",t:"S"},
-  "หมดอายุ":{en:"service life expired",t:"S"},"ติดเศษ":{en:"debris obstruction",t:"S"},
-  "แรงดันต่ำ":{en:"low supply pressure",t:"S"},"แรงดันสูง":{en:"high supply pressure",t:"S"},
-  "อุดตัน":{en:"system blockage",t:"S"},"อ่านบาร์โค้ดข้างเดียว":{en:"single-side scan failure",t:"S"},
-  "ไม่อ่านบาร์โค้ด":{en:"barcode reader failure",t:"S"},
+  "ไม่ได้ยินเสียง":{en:"no sound",t:"S"},"ไม่มีเสียงเตือน":{en:"audible alarm failure",t:"S"},
+  "สกปรกมาก":{en:"heavy contamination",t:"S"},"สกปรก":{en:"contaminated",t:"S"},
+  "เสื่อม":{en:"degraded",t:"S"},"หมดอายุ":{en:"service life expired",t:"S"},
+  "ติดเศษ":{en:"debris obstruction",t:"S"},"แรงดันต่ำ":{en:"low supply pressure",t:"S"},
+  "แรงดันสูง":{en:"high supply pressure",t:"S"},"อุดตัน":{en:"system blockage",t:"S"},
+  "อ่านบาร์โค้ดข้างเดียว":{en:"single-side scan failure",t:"S"},"ไม่อ่านบาร์โค้ด":{en:"barcode reader failure",t:"S"},
+
   // ── Lens Quality Defect Symptoms ──
   "เลนส์เป็นรอย":{en:"lens scratched",t:"S"},"เลนส์แตก":{en:"lens cracked",t:"S"},
   "เลนส์บิ่น":{en:"lens chipped",t:"S"},"เลนส์มัว":{en:"lens haze",t:"S"},
@@ -85,22 +87,20 @@ export const _dict = Object.freeze({
   "เคลือบไม่ติด":{en:"coating adhesion failure",t:"S"},"เคลือบลอก":{en:"coating peeling",t:"S"},
   "เคลือบไม่สม่ำเสมอ":{en:"uneven coating",t:"S"},"สีเพี้ยน":{en:"coating color deviation",t:"S"},
   "ฟองอากาศ":{en:"air bubble defect",t:"S"},"ฝุ่นติด":{en:"dust contamination",t:"S"},
-  "คราบน้ำ":{en:"water stain",t:"S"},
-  // ── Optical Defect Symptoms (grinding/polishing/coating/inspection) ──
-  "ผิวส้ม":{en:"orange peel surface",t:"S"},"ผิวไหม้":{en:"surface burn",t:"S"},
-  "ผิวด่าง":{en:"surface stain",t:"S"},"ลายขัด":{en:"polishing marks",t:"S"},
-  "รอยขนแมว":{en:"fine scratches",t:"S"},"ขัดกิน":{en:"over-polishing",t:"S"},
-  "ขัดไม่ถึง":{en:"under-polishing",t:"S"},"เลนส์บวม":{en:"lens swelling",t:"S"},
-  "เลนส์บาง":{en:"lens too thin",t:"S"},"เลนส์หนา":{en:"lens too thick",t:"S"},
-  "กำลังเลนส์ผิด":{en:"incorrect lens power",t:"S"},
-  "ความโค้งผิด":{en:"incorrect curvature",t:"S"},
-  "ศูนย์เลนส์เพี้ยน":{en:"lens center deviation",t:"S"},
+  "คราบน้ำ":{en:"water stain",t:"S"},"ผิวส้ม":{en:"orange peel surface",t:"S"},
+  "ผิวไหม้":{en:"surface burn",t:"S"},"ผิวด่าง":{en:"surface stain",t:"S"},
+  "ลายขัด":{en:"polishing marks",t:"S"},"รอยขนแมว":{en:"fine scratches",t:"S"},
+  "ขัดกิน":{en:"over-polishing",t:"S"},"ขัดไม่ถึง":{en:"under-polishing",t:"S"},
+  "เลนส์บวม":{en:"lens swelling",t:"S"},"เลนส์บาง":{en:"lens too thin",t:"S"},
+  "เลนส์หนา":{en:"lens too thick",t:"S"},"กำลังเลนส์ผิด":{en:"incorrect lens power",t:"S"},
+  "ความโค้งผิด":{en:"incorrect curvature",t:"S"},"ศูนย์เลนส์เพี้ยน":{en:"lens center deviation",t:"S"},
+
   // ── Lens Machine Process Symptoms ──
-  "ขัดไม่หมุน":{en:"polishing plate not rotating",t:"S"},
-  "ขัดไม่สม่ำเสมอ":{en:"uneven polishing",t:"S"},"เลนส์หลุด":{en:"lens detached",t:"S"},
-  "ดูดไม่ติด":{en:"vacuum holding failure",t:"S"},"แรงดูดต่ำ":{en:"low vacuum pressure",t:"S"},
+  "ขัดไม่หมุน":{en:"polishing plate not rotating",t:"S"},"ขัดไม่สม่ำเสมอ":{en:"uneven polishing",t:"S"},
+  "เลนส์หลุด":{en:"lens detached",t:"S"},"ดูดไม่ติด":{en:"vacuum holding failure",t:"S"},
   "เลนส์หมุน":{en:"lens slipping",t:"S"},"เลนส์เอียง":{en:"lens tilted",t:"S"},
   "ขัดแรงเกิน":{en:"excessive polishing force",t:"S"},"กินผิว":{en:"over grinding",t:"S"},
+
   // ── Electrical Fault Symptoms ──
   "ไฟเกิน":{en:"overvoltage",t:"S"},"ไฟตกบ่อย":{en:"frequent voltage drop",t:"S"},
   "ไฟไม่เสถียร":{en:"unstable power supply",t:"S"},"เฟสหาย":{en:"phase loss",t:"S"},
@@ -110,16 +110,19 @@ export const _dict = Object.freeze({
   "วงจรเปิด":{en:"open circuit",t:"S"},"ไฟไม่ครบเฟส":{en:"missing phase",t:"S"},
   "กระแสเกิน":{en:"overcurrent",t:"S"},"สัญญาณขาด":{en:"signal loss",t:"S"},
   "สัญญาณรบกวน":{en:"signal noise",t:"S"},
+
   // ── Motor / Drive Symptoms ──
   "มอเตอร์ร้อน":{en:"motor overheating",t:"S"},"มอเตอร์ไม่หมุน":{en:"motor not rotating",t:"S"},
   "มอเตอร์สะดุด":{en:"motor stalling",t:"S"},"สั่นแรง":{en:"vibrating severely",t:"S"},
   "ตำแหน่งเพี้ยน":{en:"position drift",t:"S"},
+
   // ── Process / Production Symptoms ──
   "ชิ้นงานติด":{en:"workpiece jam",t:"S"},"ชิ้นงานเอียง":{en:"workpiece misaligned",t:"S"},
   "ชิ้นงานตก":{en:"workpiece dropped",t:"S"},"งานค้าง":{en:"process stalled",t:"S"},
   "งานล้น":{en:"product overflow",t:"S"},"หยิบไม่ขึ้น":{en:"pick failure",t:"S"},
   "วางไม่ลง":{en:"place failure",t:"S"},"หยิบพลาด":{en:"mis-pick",t:"S"},
   "ขนาดผิด":{en:"dimension out of spec",t:"S"},"ตำแหน่งผิด":{en:"incorrect position",t:"S"},
+
   // ── Components (C) ──
   "สายพาน":{en:"conveyor belt",t:"C"},"สายพาย":{en:"conveyor belt",t:"C"},
   "สายพราน":{en:"conveyor belt",t:"C"},"โซ่":{en:"roller chain",t:"C"},
@@ -190,51 +193,43 @@ export const _dict = Object.freeze({
   "หัวฉีด":{en:"spray nozzle",t:"C"},"หัวสเปรย์":{en:"atomizing nozzle",t:"C"},
   "ฝักบัว":{en:"safety shower head",t:"C"},"หัวสี":{en:"ink dispensing head",t:"C"},
   "หัวขัด":{en:"polishing head",t:"C"},"หัวทองเหลือง":{en:"brass fitting",t:"C"},
-  "โรลเลอร์":{en:"conveyor roller",t:"C"},"สติวเลอร์":{en:"magnetic stirrer",t:"C"},
-  "สติลเลอร์":{en:"stirrer",t:"C"},"ฝา":{en:"tank lid",t:"C"},
-  "กระจก":{en:"inspection glass",t:"C"},"ฟิวเตอร์":{en:"filter element",t:"C"},
-  "คอม":{en:"workstation PC",t:"C"},"ชุดคอม":{en:"PC workstation set",t:"C"},
-  "คีย์บอร์ด":{en:"keyboard",t:"C"},"ลำโพง":{en:"speaker",t:"C"},
-  "โทรศัพท์":{en:"telephone",t:"C"},"โปรเจคเตอร์":{en:"projector",t:"C"},
-  "รีโมท":{en:"remote control",t:"C"},"ปริ้นเตอร์":{en:"label printer",t:"C"},
-  "ปลิ้นเตอร์":{en:"label printer",t:"C"},"ฝาปิด":{en:"cover plate",t:"C"},
-  "ฝาครอบ":{en:"enclosure cover",t:"C"},"เครื่อง":{en:"machine",t:"C"},
-  "เครื่องผสม":{en:"mixing machine",t:"C"},"เครื่องแพ็ค":{en:"packing machine",t:"C"},
-  "เครื่องล้าง":{en:"washing machine",t:"C"},"เครื่องพิมพ์":{en:"printing machine",t:"C"},
-  "เครื่องอบ":{en:"drying machine",t:"C"},
+  "โรลเลอร์":{en:"conveyor roller",t:"C"},"ถังกวน":{en:"agitator",t:"C"},
+  "สติวเลอร์":{en:"magnetic stirrer",t:"C"},"สติลเลอร์":{en:"magnetic stirrer",t:"C"},
+  "ฝา":{en:"tank lid",t:"C"},"กระจก":{en:"inspection glass",t:"C"},
+  "ฟิวเตอร์":{en:"filter element",t:"C"},"คอม":{en:"workstation PC",t:"C"},
+  "ชุดคอม":{en:"PC workstation set",t:"C"},"คีย์บอร์ด":{en:"keyboard",t:"C"},
+  "ลำโพง":{en:"speaker",t:"C"},"โทรศัพท์":{en:"telephone",t:"C"},
+  "โปรเจคเตอร์":{en:"projector",t:"C"},"รีโมท":{en:"remote control",t:"C"},
+  "ปริ้นเตอร์":{en:"label printer",t:"C"},"ปลิ้นเตอร์":{en:"label printer",t:"C"},
+  "ฝาปิด":{en:"cover plate",t:"C"},"ฝาครอบ":{en:"enclosure cover",t:"C"},
+  "เครื่อง":{en:"machine",t:"C"},"เครื่องผสม":{en:"mixing machine",t:"C"},
+  "เครื่องแพ็ค":{en:"packing machine",t:"C"},"เครื่องล้าง":{en:"washing machine",t:"C"},
+  "เครื่องพิมพ์":{en:"printing machine",t:"C"},"เครื่องอบ":{en:"drying machine",t:"C"},
+
   // ── Optical Manufacturing Components ──
-  "บล็อกเลนส์":{en:"lens block",t:"C"},
-  "แม่พิมพ์เลนส์":{en:"lens mold",t:"C"},"แท่นขัด":{en:"polishing plate",t:"C"},
-  "จานขัด":{en:"polishing plate",t:"C"},"จานเจียร":{en:"grinding plate",t:"C"},
-  "หัวจับเลนส์":{en:"lens holder",t:"C"},"หัวบล็อก":{en:"blocking chuck",t:"C"},
-  "แท่นหมุน":{en:"rotary table",t:"C"},"สปินเดิล":{en:"spindle",t:"C"},
-  "จิ๊ก":{en:"alignment jig",t:"C"},"ฟิกซ์เจอร์":{en:"fixture",t:"C"},
-  "แท่นวาง":{en:"work platform",t:"C"},"ถาดเลนส์":{en:"lens tray",t:"C"},
-  "ตะแกรงเลนส์":{en:"lens basket",t:"C"},"หัวดูด":{en:"vacuum head",t:"C"},
-  "ปั๊มสุญญากาศ":{en:"vacuum pump",t:"C"},"ท่อสุญญากาศ":{en:"vacuum line",t:"C"},
-  // ── Additional Optical Machine Parts ──
-  "ผ้าขัด":{en:"polishing pad",t:"C"},"เพลาขัด":{en:"polishing spindle",t:"C"},
-  "หัวจับ":{en:"chuck",t:"C"},"แท่นจับ":{en:"clamping stage",t:"C"},
-  "ตัวตั้งศูนย์":{en:"alignment unit",t:"C"},"ชุดสุญญากาศ":{en:"vacuum system",t:"C"},
-  "หัววัด":{en:"measurement probe",t:"C"},
+  "บล็อกเลนส์":{en:"lens block",t:"C"},"แม่พิมพ์เลนส์":{en:"lens mold",t:"C"},
+  "แท่นขัด":{en:"polishing plate",t:"C"},"จานขัด":{en:"polishing plate",t:"C"},
+  "จานเจียร":{en:"grinding plate",t:"C"},"หัวจับเลนส์":{en:"lens holder",t:"C"},
+  "หัวบล็อก":{en:"blocking chuck",t:"C"},"แท่นหมุน":{en:"rotary table",t:"C"},
+  "สปินเดิล":{en:"spindle",t:"C"},"จิ๊ก":{en:"alignment jig",t:"C"},
+  "ฟิกซ์เจอร์":{en:"fixture",t:"C"},"แท่นวาง":{en:"work platform",t:"C"},
+  "ถาดเลนส์":{en:"lens tray",t:"C"},"ตะแกรงเลนส์":{en:"lens basket",t:"C"},
+  "หัวดูด":{en:"vacuum head",t:"C"},"ปั๊มสุญญากาศ":{en:"vacuum pump",t:"C"},
+  "ท่อสุญญากาศ":{en:"vacuum line",t:"C"},"ผ้าขัด":{en:"polishing pad",t:"C"},
+  "เพลาขัด":{en:"polishing spindle",t:"C"},"หัวจับ":{en:"chuck",t:"C"},
+  "แท่นจับ":{en:"clamping stage",t:"C"},"ตัวตั้งศูนย์":{en:"alignment unit",t:"C"},
+  "ชุดสุญญากาศ":{en:"vacuum system",t:"C"},"หัววัด":{en:"measurement probe",t:"C"},
   "เครื่องวัดผิว":{en:"surface profiler",t:"C"},"เครื่องวัดศูนย์":{en:"centering machine",t:"C"},
-  // ── Lens Process Equipment ──
-  "เครื่องเจียรเลนส์":{en:"lens grinding machine",t:"C"},
-  "เครื่องขัดเลนส์":{en:"lens polishing machine",t:"C"},
-  "เครื่องเคลือบเลนส์":{en:"lens coating machine",t:"C"},
-  "เครื่องล้างเลนส์":{en:"lens cleaning machine",t:"C"},
-  "เครื่องบล็อกเลนส์":{en:"lens blocking machine",t:"C"},
-  "เครื่องดีบล็อก":{en:"lens deblocking machine",t:"C"},
-  "เครื่องตรวจเลนส์":{en:"lens inspection machine",t:"C"},
-  "เครื่องวัดกำลังเลนส์":{en:"lens power meter",t:"C"},
-  "เครื่องวัดความโค้ง":{en:"lens curvature meter",t:"C"},
-  "เครื่องวัดความหนา":{en:"lens thickness gauge",t:"C"},
-  // ── Lens Process Materials ──
+  "เครื่องเจียรเลนส์":{en:"lens grinding machine",t:"C"},"เครื่องขัดเลนส์":{en:"lens polishing machine",t:"C"},
+  "เครื่องเคลือบเลนส์":{en:"lens coating machine",t:"C"},"เครื่องล้างเลนส์":{en:"lens cleaning machine",t:"C"},
+  "เครื่องบล็อกเลนส์":{en:"lens blocking machine",t:"C"},"เครื่องดีบล็อก":{en:"lens deblocking machine",t:"C"},
+  "เครื่องตรวจเลนส์":{en:"lens inspection machine",t:"C"},"เครื่องวัดกำลังเลนส์":{en:"lens power meter",t:"C"},
+  "เครื่องวัดความโค้ง":{en:"lens curvature meter",t:"C"},"เครื่องวัดความหนา":{en:"lens thickness gauge",t:"C"},
   "ผงขัด":{en:"polishing compound",t:"C"},"น้ำยาขัด":{en:"polishing slurry",t:"C"},
   "สารเคลือบ":{en:"coating material",t:"C"},"สารเคลือบแข็ง":{en:"hard coating",t:"C"},
-  "สารเคลือบกันสะท้อน":{en:"anti-reflective coating",t:"C"},
-  "น้ำยาอัลตร้าโซนิค":{en:"ultrasonic cleaning solution",t:"C"},
+  "สารเคลือบกันสะท้อน":{en:"anti-reflective coating",t:"C"},"น้ำยาอัลตร้าโซนิค":{en:"ultrasonic cleaning solution",t:"C"},
   "กาวบล็อก":{en:"blocking adhesive",t:"C"},"เทปกันรอย":{en:"protective tape",t:"C"},
+
   // ── Mechanical Wear Parts ──
   "ลูกปืน":{en:"bearing",t:"C"},"ตลับลูกปืน":{en:"bearing housing",t:"C"},
   "แบริ่ง":{en:"bearing",t:"C"},"บูช":{en:"bushing",t:"C"},
@@ -247,6 +242,7 @@ export const _dict = Object.freeze({
   "ลูกล้อ":{en:"idler roller",t:"C"},"ยอย":{en:"coupling joint",t:"C"},
   "สลักเพลา":{en:"shaft pin",t:"C"},"สายพานไทม์มิ่ง":{en:"timing belt",t:"C"},
   "ผ้าเบรก":{en:"brake pad",t:"C"},
+
   // ── Automation / Electrical Components ──
   "PLC":{en:"PLC controller",t:"C"},"อินเวอร์เตอร์":{en:"variable frequency drive",t:"C"},
   "VFD":{en:"variable frequency drive",t:"C"},"เซอร์โวมอเตอร์":{en:"servo motor",t:"C"},
@@ -258,6 +254,7 @@ export const _dict = Object.freeze({
   "ลิมิตสวิทช์":{en:"limit switch",t:"C"},"โพร๊ก":{en:"proximity sensor",t:"C"},
   "โฟโต้":{en:"photoelectric sensor",t:"C"},"โฟโต้เซ็นเซอร์":{en:"photoelectric sensor",t:"C"},
   "โมดูล":{en:"control module",t:"C"},
+
   // ── Actions (A) ──
   "เปลี่ยน":{en:"replace",t:"A"},"เปลื่ยน":{en:"replace",t:"A"},
   "เปลียน":{en:"replace",t:"A"},"เปรี่ยน":{en:"replace",t:"A"},
@@ -269,7 +266,8 @@ export const _dict = Object.freeze({
   "ถอด":{en:"dismantle",t:"A"},"เอาออก":{en:"extract",t:"A"},
   "แกะ":{en:"disassemble",t:"A"},"ย้าย":{en:"relocate",t:"A"},
   "ย้าน":{en:"relocate",t:"A"},"จัดเก็บ":{en:"organize",t:"A"},
-  "ทำความสะอาด":{en:"clean",t:"A"},"ล้าง":{en:"flush",t:"A"},
+  "ล้าง":{en:"clean",t:"A"},"ล้างท่อ":{en:"flush",t:"A"},
+  "ล้างเครื่อง":{en:"wash",t:"A"},"ทำความสะอาด":{en:"clean",t:"A"},
   "เคลียฝุ่น":{en:"vacuum dust",t:"A"},"ปัด":{en:"wipe down",t:"A"},
   "อุดรู":{en:"seal off",t:"A"},"เจาะรู":{en:"drill",t:"A"},
   "ลากสาย":{en:"route cable",t:"A"},"ทาสี":{en:"repaint",t:"A"},
@@ -280,26 +278,23 @@ export const _dict = Object.freeze({
   "ละลายน้ำแข็ง":{en:"defrost cycle",t:"A"},"ดึง":{en:"pull",t:"A"},
   "เติม":{en:"top-up",t:"A"},"เพิ่ม":{en:"add",t:"A"},
   "เบิก":{en:"spare part requisition",t:"A"},"เบิกของ":{en:"material withdrawal",t:"A"},
-  "สั่ง":{en:"issue PO",t:"A"},"สลับ":{en:"bypass",t:"A"},
-  "หุ้มฉนวน":{en:"apply insulation",t:"A"},
-  // ── Lens Process Actions ──
-  "ขัด":{en:"polish",t:"A"},"เจียร":{en:"grind",t:"A"},
-  "บล็อก":{en:"block lens",t:"A"},"ดีบล็อก":{en:"deblock lens",t:"A"},
-  "เคลือบ":{en:"apply coating",t:"A"},
-  "ตั้งแรงดูด":{en:"adjust vacuum pressure",t:"A"},
-  "ตั้งแรงกด":{en:"adjust polishing force",t:"A"},
-  "ตั้งความเร็ว":{en:"adjust rotation speed",t:"A"},
-  "เปลี่ยนผงขัด":{en:"replace polishing compound",t:"A"},
-  "เติมน้ำยาขัด":{en:"add polishing slurry",t:"A"},
-  // ── Maintenance / Automation Actions ──
-  "รีเซ็ต":{en:"reset",t:"A"},"รีสตาร์ท":{en:"restart",t:"A"},
-  "รีบูต":{en:"reboot",t:"A"},"ขัน":{en:"tighten",t:"A"},
-  "คลาย":{en:"loosen",t:"A"},"อัดจารบี":{en:"apply grease",t:"A"},
-  "หล่อลื่น":{en:"lubricate",t:"A"},"ตั้งค่า":{en:"configure",t:"A"},
-  "โปรแกรม":{en:"program",t:"A"},"ตั้งโปรแกรม":{en:"program",t:"A"},
-  "โหลดโปรแกรม":{en:"upload program",t:"A"},"ดาวน์โหลดโปรแกรม":{en:"download program",t:"A"},
-  "ทดสอบ":{en:"test",t:"A"},"รีเซ็ตเออเร่อ":{en:"reset fault",t:"A"},
-  "เดินเครื่อง":{en:"run test",t:"A"},"ทดลอง":{en:"trial run",t:"A"},
+  "สั่ง":{en:"issue PO",t:"A"},"สลับ":{en:"swap",t:"A"},
+  "ต่อตรง":{en:"bypass",t:"A"},"บายพาส":{en:"bypass",t:"A"},
+  "หุ้มฉนวน":{en:"apply insulation",t:"A"},"ขัด":{en:"polish",t:"A"},
+  "เจียร":{en:"grind",t:"A"},"บล็อก":{en:"block lens",t:"A"},
+  "ดีบล็อก":{en:"deblock lens",t:"A"},"เคลือบ":{en:"apply coating",t:"A"},
+  "ตั้งแรงดูด":{en:"adjust vacuum pressure",t:"A"},"ตั้งแรงกด":{en:"adjust polishing force",t:"A"},
+  "ตั้งความเร็ว":{en:"adjust rotation speed",t:"A"},"เปลี่ยนผงขัด":{en:"replace polishing compound",t:"A"},
+  "เติมน้ำยาขัด":{en:"add polishing slurry",t:"A"},"รีเซ็ต":{en:"reset",t:"A"},
+  "รีสตาร์ท":{en:"restart",t:"A"},"รีบูต":{en:"reboot",t:"A"},
+  "ขัน":{en:"tighten",t:"A"},"คลาย":{en:"loosen",t:"A"},
+  "อัดจารบี":{en:"apply grease",t:"A"},"หล่อลื่น":{en:"lubricate",t:"A"},
+  "ตั้งค่า":{en:"configure",t:"A"},"โปรแกรม":{en:"program",t:"A"},
+  "ตั้งโปรแกรม":{en:"program",t:"A"},"โหลดโปรแกรม":{en:"upload program",t:"A"},
+  "ดาวน์โหลดโปรแกรม":{en:"download program",t:"A"},"ทดสอบ":{en:"test",t:"A"},
+  "รีเซ็ตเออเร่อ":{en:"reset fault",t:"A"},"เดินเครื่อง":{en:"run test",t:"A"},
+  "ทดลอง":{en:"trial run",t:"A"},
+
   // ── Locations (L) ──
   "ห้องคลีนรูม":{en:"cleanroom",t:"L"},"ห้องผสม":{en:"formulation room",t:"L"},
   "ห้องโมโนเมอร์":{en:"monomer preparation room",t:"L"},"ห้องแยกงาน":{en:"sorting area",t:"L"},
@@ -315,6 +310,7 @@ export const _dict = Object.freeze({
   "หลังเครื่อง":{en:"machine rear",t:"L"},"ซ้าย":{en:"left side",t:"L"},
   "ขวา":{en:"right side",t:"L"},"สเต๊ปแรก":{en:"initial process step",t:"L"},
   "สเต๊ปสุดท้าย":{en:"final process step",t:"L"},
+
   // ── Modifiers (M) ──
   "อุณหภูมิ":{en:"temperature",t:"M"},"ความชื้น":{en:"relative humidity",t:"M"},
   "แรงดัน":{en:"system pressure",t:"M"},"ศูนย์":{en:"center alignment",t:"M"},
@@ -325,7 +321,117 @@ export const _dict = Object.freeze({
   "ด่วน":{en:"urgent",t:"M"},"เร่งด่วน":{en:"urgent",t:"M"},
   "บ่อย":{en:"frequently",t:"M"},"ตลอด":{en:"continuously",t:"M"},
   "บางครั้ง":{en:"occasionally",t:"M"},"เป็นพักๆ":{en:"intermittently",t:"M"},
-  "ทันที":{en:"immediately",t:"M"}
+  "ทันที":{en:"immediately",t:"M"},
+
+  // =======================================================================
+  // 🏭 UTILITIES & FACILITY SYSTEMS
+  // =======================================================================
+  
+  // 💨 1. Compressed Air System
+  "สกรู":{en:"air end",t:"C",sys:"Air Compressor"},"หัวสกรู":{en:"air end",t:"C",sys:"Air Compressor"},
+  "ออโต้เดรน":{en:"auto drain valve",t:"C",sys:"Air Compressor"},"ตัวเดรนน้ำ":{en:"auto drain valve",t:"C",sys:"Air Compressor"},
+  "เซปปะเรเตอร์":{en:"oil separator",t:"C",sys:"Air Compressor"},"กรองน้ำมัน":{en:"oil filter",t:"C",sys:"Air Compressor"},
+  "วาล์วไอดี":{en:"inlet valve",t:"C",sys:"Air Compressor"},"อันโหลดเดอร์":{en:"unloader valve",t:"C",sys:"Air Compressor"},
+  "ลมไม่ตัด":{en:"continuous loading",t:"S",sys:"Air Compressor"},"โหลดตลอด":{en:"continuous loading",t:"S",sys:"Air Compressor"},
+  "อุณหภูมิปลายทางสูง":{en:"high discharge temperature",t:"S",sys:"Air Compressor"},"ร้อนจัด":{en:"high temperature",t:"S",sys:"Air Compressor"},
+  "น้ำมันหาย":{en:"oil carryover",t:"S",sys:"Air Compressor"},"น้ำมันปนไปกับลม":{en:"oil carryover",t:"S",sys:"Air Compressor"},
+  "ลมมีน้ำ":{en:"moisture in compressed air",t:"S",sys:"Air Compressor"},"น้ำเกาะท่อ":{en:"moisture in pipe",t:"S",sys:"Air Compressor"},
+  "ลมตก":{en:"pressure drop",t:"S",sys:"Air Compressor"},"เพรสเชอร์ตก":{en:"pressure drop",t:"S",sys:"Air Compressor"},
+  "ถ่ายน้ำมันเครื่อง":{en:"change compressor oil",t:"A",sys:"Air Compressor"},"เปลี่ยนกรองดักน้ำ":{en:"replace moisture separator",t:"A",sys:"Air Compressor"},
+
+  // ❄️ 2. Chilled Water & HVAC System
+  "อีแวป":{en:"evaporator",t:"C",sys:"Chiller"},"คูลเลอร์":{en:"cooler",t:"C",sys:"Chiller"},
+  "คอนเดนเซอร์":{en:"condenser",t:"C",sys:"Chiller"},"รังผึ้งร้อน":{en:"condenser coil",t:"C",sys:"Chiller"},
+  "เอ็กซ์แพนชั่น":{en:"expansion valve",t:"C",sys:"Chiller"},"วาล์วฉีดน้ำยา":{en:"expansion valve",t:"C",sys:"Chiller"},
+  "คูลลิ่งทาวเวอร์":{en:"cooling tower",t:"C",sys:"Chiller"},"หอหล่อเย็น":{en:"cooling tower",t:"C",sys:"Chiller"},
+  "ไฮเพรสเชอร์":{en:"high condenser pressure",t:"S",sys:"Chiller"},"แรงดันไฮสูง":{en:"high condenser pressure",t:"S",sys:"Chiller"},
+  "โลว์เพรสเชอร์":{en:"low evaporator pressure",t:"S",sys:"Chiller"},"แรงดันโลว์ต่ำ":{en:"low evaporator pressure",t:"S",sys:"Chiller"},
+  "ตะกรันเกาะ":{en:"scaling",t:"S",sys:"Chiller"},"ตะกรันหนา":{en:"heavy scaling",t:"S",sys:"Chiller"},
+  "น้ำยาขาด":{en:"low refrigerant",t:"S",sys:"Chiller"},"น้ำยารั่ว":{en:"refrigerant leak",t:"S",sys:"Chiller"},
+  "แอร์ไม่ฉ่ำ":{en:"low cooling capacity",t:"S",sys:"Chiller"},"ล้างทิ้ว":{en:"tube cleaning",t:"A",sys:"Chiller"},
+  "แยงทิ้ว":{en:"tube punching",t:"A",sys:"Chiller"},"เติมน้ำยาแอร์":{en:"top-up refrigerant",t:"A",sys:"Chiller"},
+
+  // 🕳️ 3. Vacuum System
+  "เวรน":{en:"rotary vane",t:"C",sys:"Vacuum Pump"},"ใบพัดคาร์บอน":{en:"carbon vane",t:"C",sys:"Vacuum Pump"},
+  "กรองไอเสีย":{en:"exhaust filter",t:"C",sys:"Vacuum Pump"},"กรองฝุ่น":{en:"inlet filter",t:"C",sys:"Vacuum Pump"},
+  "ออยซิล":{en:"oil seal",t:"C",sys:"Vacuum Pump"},"ซีลคอเพลา":{en:"shaft seal",t:"C",sys:"Vacuum Pump"},
+  "แวคไม่ลง":{en:"low vacuum",t:"S",sys:"Vacuum Pump"},"ดูดไม่ขึ้น":{en:"cannot reach target vacuum",t:"S",sys:"Vacuum Pump"},
+  "ควันขาว":{en:"white smoke exhaust",t:"S",sys:"Vacuum Pump"},"น้ำมันพ่น":{en:"oil mist exhaust",t:"S",sys:"Vacuum Pump"},
+  "โอเวอร์ฮีต":{en:"overheating",t:"S",sys:"Vacuum Pump"},"เปลี่ยนแผ่นเวรน":{en:"replace carbon vanes",t:"A",sys:"Vacuum Pump"},
+  "ล้างไส้กรอง":{en:"clean filter",t:"A",sys:"Vacuum Pump"},
+
+  // ♨️ 4. Steam & Boiler System
+  "สตีมแทรป":{en:"steam trap",t:"C",sys:"Boiler"},"กับดักไอน้ำ":{en:"steam trap",t:"C",sys:"Boiler"},
+  "เบิร์นเนอร์":{en:"burner",t:"C",sys:"Boiler"},"หัวเผา":{en:"burner",t:"C",sys:"Boiler"},
+  "เซฟตี้วาล์ว":{en:"safety relief valve",t:"C",sys:"Boiler"},"วาล์วระบาย":{en:"relief valve",t:"C",sys:"Boiler"},
+  "ฮีตเอ็กเชนเจอร์":{en:"heat exchanger",t:"C",sys:"Boiler"},"ตัวแลกเปลี่ยน":{en:"heat exchanger",t:"C",sys:"Boiler"},
+  "จุดไม่ติด":{en:"ignition failure",t:"S",sys:"Boiler"},"หัวเผาเฟล":{en:"burner failure",t:"S",sys:"Boiler"},
+  "สตีมไม่พอ":{en:"low steam pressure",t:"S",sys:"Boiler"},"สตีมรั่ว":{en:"steam leakage",t:"S",sys:"Boiler"},
+  "ไอน้ำออก":{en:"steam leakage",t:"S",sys:"Boiler"},"น้ำแห้ง":{en:"dry boiler",t:"S",sys:"Boiler"},
+  "ระดับน้ำโลว์":{en:"low water level",t:"S",sys:"Boiler"},"โบลว์ดาวน์":{en:"bottom blowdown",t:"A",sys:"Boiler"},
+  "เดรนน้ำทิ้ง":{en:"drain water",t:"A",sys:"Boiler"},
+
+  // 💧 5. Water Treatment System
+  "เมมเบรน":{en:"RO membrane",t:"C",sys:"Water Treatment"},"ไส้กรอง RO":{en:"RO membrane",t:"C",sys:"Water Treatment"},
+  "ปั๊มโดส":{en:"chemical dosing pump",t:"C",sys:"Water Treatment"},"ปั๊มเติมเคมี":{en:"chemical dosing pump",t:"C",sys:"Water Treatment"},
+  "เรซิ่น":{en:"ion exchange resin",t:"C",sys:"Water Treatment"},"สารกรอง":{en:"filter media",t:"C",sys:"Water Treatment"},
+  "ค่าน้ำเกิน":{en:"high conductivity",t:"S",sys:"Water Treatment"},"คอนดักเกิน":{en:"high conductivity",t:"S",sys:"Water Treatment"},
+  "เพรสเชอร์ดิฟ":{en:"high differential pressure",t:"S",sys:"Water Treatment"},"ดิฟสูง":{en:"high differential pressure",t:"S",sys:"Water Treatment"},
+  "แบ็ควอช":{en:"backwash",t:"A",sys:"Water Treatment"},"ล้างย้อน":{en:"backwash",t:"A",sys:"Water Treatment"},
+  "เติมเกลือ":{en:"add salt",t:"A",sys:"Water Treatment"},"ฟื้นฟูเรซิ่น":{en:"resin regeneration",t:"A",sys:"Water Treatment"},
+
+  // ⚡ 6. Electrical & Power System
+  "คาปา":{en:"capacitor bank",t:"C",sys:"Power System"},"แคปแบงค์":{en:"capacitor bank",t:"C",sys:"Power System"},
+  "เบรกเกอร์เมน":{en:"main breaker",t:"C",sys:"Power System"},"เอ็มซีบี":{en:"main breaker",t:"C",sys:"Power System"},
+  "ทริป":{en:"breaker tripped",t:"S",sys:"Power System"},"เด้ง":{en:"breaker tripped",t:"S",sys:"Power System"},
+  "พีเอฟตก":{en:"low power factor",t:"S",sys:"Power System"},"ค่าไฟเกิน":{en:"high power consumption",t:"S",sys:"Power System"},
+  "ขั้วหลวม":{en:"loose connection",t:"S",sys:"Power System"},"รอยไหม้":{en:"burn mark",t:"S",sys:"Power System"},
+  "ขันเทอร์มินอล":{en:"retighten terminal",t:"A",sys:"Power System"},"ย้ำหางปลา":{en:"re-crimp terminal",t:"A",sys:"Power System"},
+  "ส่องกล้องความร้อน":{en:"thermoscan inspection",t:"A",sys:"Power System"},
+
+  // =======================================================================
+  // 🤖 END OF LINE & AUTOMATION SYSTEMS
+  // =======================================================================
+
+  // 📦 7. Auto Packing System
+  "ตัวดูดซอง":{en:"envelope vacuum picker",t:"C",sys:"Auto Packing"},"แมกกาซีนซอง":{en:"envelope magazine",t:"C",sys:"Auto Packing"},
+  "ตัวเปิดซอง":{en:"envelope opener",t:"C",sys:"Auto Packing"},"ตัวดันเลนส์":{en:"lens pusher",t:"C",sys:"Auto Packing"},
+  "ฮีตเตอร์ซีล":{en:"sealing heater",t:"C",sys:"Auto Packing"},"ตัวซีลปากซอง":{en:"sealer jaw",t:"C",sys:"Auto Packing"},
+  "ตัวพิมพ์วันที่":{en:"date coder",t:"C",sys:"Auto Packing"},"ซองติด":{en:"envelope jam",t:"S",sys:"Auto Packing"},
+  "ดูดซองไม่ขึ้น":{en:"failed to pick envelope",t:"S",sys:"Auto Packing"},"ดูดซองซ้อน":{en:"double envelope pick",t:"S",sys:"Auto Packing"},
+  "เปิดซองไม่ออก":{en:"failed to open envelope",t:"S",sys:"Auto Packing"},"ใส่เลนส์ไม่เข้า":{en:"failed to insert lens",t:"S",sys:"Auto Packing"},
+  "ซีลไม่สนิท":{en:"incomplete seal",t:"S",sys:"Auto Packing"},"ซีลรั่ว":{en:"leaking seal",t:"S",sys:"Auto Packing"},
+  "ซีลไหม้":{en:"burnt seal",t:"S",sys:"Auto Packing"},"ซองยับ":{en:"wrinkled envelope",t:"S",sys:"Auto Packing"},
+  "เติมซอง":{en:"replenish envelopes",t:"A",sys:"Auto Packing"},"ตั้งความร้อนซีล":{en:"adjust sealing temperature",t:"A",sys:"Auto Packing"},
+
+  // 🛣️ 8. Conveyor System
+  "สต็อปเปอร์":{en:"stopper cylinder",t:"C",sys:"Conveyor System"},"ตัวปัดงาน":{en:"rejector mechanism",t:"C",sys:"Conveyor System"},
+  "ตัวคัดแยก":{en:"diverter",t:"C",sys:"Conveyor System"},"ไกด์ประคอง":{en:"guide rail",t:"C",sys:"Conveyor System"},
+  "สายพานลื่น":{en:"belt slipping",t:"S",sys:"Conveyor System"},"สายพานส่าย":{en:"belt wandering",t:"S",sys:"Conveyor System"},
+  "สายพานปีนขอบ":{en:"belt tracking issue",t:"S",sys:"Conveyor System"},"สายพานขาด":{en:"broken belt",t:"S",sys:"Conveyor System"},
+  "ชิ้นงานชนกัน":{en:"parts colliding",t:"S",sys:"Conveyor System"},"สต็อปเปอร์ค้าง":{en:"stopper jammed",t:"S",sys:"Conveyor System"},
+  "ตั้งความตึงสายพาน":{en:"tension belt",t:"A",sys:"Conveyor System"},"ตั้งศูนย์สายพาน":{en:"align belt tracking",t:"A",sys:"Conveyor System"},
+
+  // ⚡ 9. Laser Marking Machine
+  "หัวเลเซอร์":{en:"laser head",t:"C",sys:"Laser Marking"},"เลนส์โฟกัส":{en:"f-theta focus lens",t:"C",sys:"Laser Marking"},
+  "ซอร์สเลเซอร์":{en:"laser source",t:"C",sys:"Laser Marking"},"เครื่องดูดควัน":{en:"fume extractor",t:"C",sys:"Laser Marking"},
+  "เลเซอร์ไม่ยิง":{en:"laser not firing",t:"S",sys:"Laser Marking"},"มาร์คไม่ชัด":{en:"faint marking",t:"S",sys:"Laser Marking"},
+  "ยิงไม่เข้า":{en:"insufficient marking depth",t:"S",sys:"Laser Marking"},"ตัวอักษรเบี้ยว":{en:"distorted characters",t:"S",sys:"Laser Marking"},
+  "ตัวอักษรขาด":{en:"incomplete marking",t:"S",sys:"Laser Marking"},"รอยยิงไหม้":{en:"burnt mark",t:"S",sys:"Laser Marking"},
+  "ยิงตกขอบ":{en:"marking out of bound",t:"S",sys:"Laser Marking"},"โฟกัสเพี้ยน":{en:"out of focus",t:"S",sys:"Laser Marking"},
+  "ควันเยอะ":{en:"excessive fume",t:"S",sys:"Laser Marking"},"ปรับโฟกัสเลเซอร์":{en:"adjust laser focus",t:"A",sys:"Laser Marking"},
+  "ทำความสะอาดเลนส์โฟกัส":{en:"clean focus lens",t:"A",sys:"Laser Marking"},
+
+  // 👁️ 10. Vision Inspection System (AOI)
+  "กล้องวิชั่น":{en:"vision camera",t:"C",sys:"Vision Inspection"},"เลนส์กล้อง":{en:"camera lens",t:"C",sys:"Vision Inspection"},
+  "ไฟริงไลท์":{en:"ring light illumination",t:"C",sys:"Vision Inspection"},"ชุดส่องสว่าง":{en:"illumination unit",t:"C",sys:"Vision Inspection"},
+  "ฉากหลัง":{en:"backlight",t:"C",sys:"Vision Inspection"},"ตัวประมวลผลภาพ":{en:"vision controller",t:"C",sys:"Vision Inspection"},
+  "จับภาพไม่ได้":{en:"image capture failure",t:"S",sys:"Vision Inspection"},"กล้องค้าง":{en:"camera frozen",t:"S",sys:"Vision Inspection"},
+  "ภาพเบลอ":{en:"blurred image",t:"S",sys:"Vision Inspection"},"แสงไม่พอ":{en:"insufficient illumination",t:"S",sys:"Vision Inspection"},
+  "แสงจ้าไป":{en:"overexposure",t:"S",sys:"Vision Inspection"},"แสงสะท้อน":{en:"glare reflection issue",t:"S",sys:"Vision Inspection"},
+  "ดีดงานทิ้งผิด":{en:"false reject",t:"S",sys:"Vision Inspection"},"ปล่อยงานเสียผ่าน":{en:"false acceptance",t:"S",sys:"Vision Inspection"},
+  "คาลิเบรทกล้อง":{en:"calibrate camera",t:"A",sys:"Vision Inspection"},"สอนภาพใหม่":{en:"re-train vision model",t:"A",sys:"Vision Inspection"},
+  "ปรับแสงกล้อง":{en:"adjust illumination",t:"A",sys:"Vision Inspection"}
 })
 
 // ── Phrase priority table (checked before tokenize) ──
@@ -335,6 +441,8 @@ export const _phrases = Object.freeze({
   'ปั๊มน้ำไม่ไหล': 'The fluid pump has no water flow.',
   'เซ็นเซอร์เออเร่อ': 'The sensor is showing an error.',
   'หม้อต้มไม่ร้อน': 'The industrial boiler is not heating.',
+  'หน้าจอค้าง': 'The HMI screen is unresponsive.',
+  'PLCค้าง': 'The PLC is frozen.',
 })
 
 // ── Grammar noun-phrase rewrites ──
@@ -345,7 +453,7 @@ const _nounRewrite = Object.freeze({
 // ── Production metrics ──
 export let _metrics = { fuzzyHits: 0, unknownTokens: 0 }
 
-// ── LRU Cache (max 5000 — prevents unbounded memory growth) ──
+// ── LRU Cache (max 5000) ──
 class LRU {
   constructor(max) { this.max = max; this.map = new Map() }
   get(k) {
@@ -360,7 +468,7 @@ class LRU {
   has(k) { return this.map.has(k) }
 }
 
-// ── Trie for O(n) tokenization — built once at module load ──
+// ── Trie for O(n) tokenization ──
 function buildTrie() {
   const trie = Object.create(null)
   for (const k of Object.keys(_dict)) {
@@ -369,13 +477,13 @@ function buildTrie() {
       if (!node[ch]) node[ch] = Object.create(null)
       node = node[ch]
     }
-    node.$ = { en: _dict[k].en, t: _dict[k].t }
+    node.$ = { en: _dict[k].en, t: _dict[k].t, sys: _dict[k].sys }
   }
   return trie
 }
 const TRIE = buildTrie()
 
-// ── Length + first-char indexed fuzzy lookup — precompiled at module load ──
+// ── Length + first-char indexed fuzzy lookup ──
 const _dictByLen = (() => {
   const map = {}
   for (const k of Object.keys(_dict)) {
@@ -401,11 +509,11 @@ function fuzzyLookup(word, threshold = 0.80) {
     const bucket = _dictByLen[l]
     if (!bucket) continue
     for (const k of bucket) {
-      if (Array.from(k)[0] !== wFirst) continue   // first-char filter — cuts ~50% of Levenshtein calls
-      if (k.slice(0,2) !== word.slice(0,2)) continue  // 2-char prefix filter — cuts ~70% total
+      if (Array.from(k)[0] !== wFirst) continue   
+      if (k.slice(0,2) !== word.slice(0,2)) continue  
       const dist = levenshtein(word, k)
       const sim = 1 - dist / Math.max(wLen, l)
-      if (sim > bestSim) { bestSim = sim; best = { en: _dict[k].en, t: _dict[k].t, key: k, sim } }
+      if (sim > bestSim) { bestSim = sim; best = { ..._dict[k], key: k, sim } }
     }
   }
   _fuzzyCache.set(word, best)
@@ -413,16 +521,15 @@ function fuzzyLookup(word, threshold = 0.80) {
   return best
 }
 
-// ── Trie-based tokenizer — O(n) instead of O(n * dict_size) ──
+// ── Trie-based tokenizer ──
 export function tokenize(text) {
   const result = []
   const chars = Array.from(String(text).trim())
-  const trie = TRIE   // Opt 1: use static module-level trie
+  const trie = TRIE   
   let i = 0
   while (i < chars.length) {
     if (chars[i] === ' ') { i++; continue }
 
-    // Walk trie for longest match starting at i
     let node = trie, lastMatch = null, lastEnd = i, j = i
     while (j < chars.length && node[chars[j]]) {
       node = node[chars[j]]; j++
@@ -430,13 +537,12 @@ export function tokenize(text) {
     }
 
     if (lastMatch) {
-      result.push({ en: lastMatch.en, t: lastMatch.t, raw: chars.slice(i, lastEnd).join('') })
+      result.push({ en: lastMatch.en, t: lastMatch.t, sys: lastMatch.sys, raw: chars.slice(i, lastEnd).join('') })
       i = lastEnd
     } else {
-      // Unknown segment scan using Trie prefix lookahead (O(n))
       let end = i + 1
       while (end < chars.length && chars[end] !== ' ') {
-        if (trie[chars[end]]) break   // Opt 2: stop if next char starts a dict entry
+        if (trie[chars[end]]) break   
         let n2 = trie, k2 = end, hit = false
         while (k2 < chars.length && n2[chars[k2]]) {
           n2 = n2[chars[k2]]; k2++
@@ -449,9 +555,9 @@ export function tokenize(text) {
       if (unk) {
         const fm = fuzzyLookup(unk)
         if (fm) {
-          result.push({ en: fm.en, t: fm.t, raw: unk, fuzzy: true })
+          result.push({ en: fm.en, t: fm.t, sys: fm.sys, raw: unk, fuzzy: true })
         } else {
-          _metrics.unknownTokens++   // Opt 9: track unknown tokens
+          _metrics.unknownTokens++   
           if (result.length && result[result.length-1].t === 'U') {
             result[result.length-1].en += ' ' + unk; result[result.length-1].raw += unk
           } else {
@@ -490,6 +596,11 @@ const _normRules = [
   [/เบรคเกอร์/g, 'เบรกเกอร์'],
   [/อินเวอร์เตอ(?=[^ร]|$)/g, 'อินเวอร์เตอร์'],
   [/เซอร์โวมอเตอ(?=[^ร]|$)/g, 'เซอร์โวมอเตอร์'],
+  [/เลเซอ(?=[^ร]|$)/g, 'เลเซอร์'],
+  [/วิชัน|วิชั่น/g, 'วิชั่น'],
+  [/แพคกิ้ง|แพ๊คกิ้ง/g, 'แพ็คกิ้ง'],
+  [/คอนเวเยอ(?=[^ร]|$)|คอนเวนเยอร์/g, 'คอนเวเยอร์'],
+  [/คาลิเบรต|แคลลิเบรท/g, 'คาลิเบรท'],
   [/([\u0E00-\u0E7F])\1{2,}/g, '$1$1'],
   [/\s+/g, ' '],
 ]
@@ -526,14 +637,25 @@ function levenshtein(a, b) {
   return prev[n]
 }
 
-// Grammar assembler
-const _nonFluidComps = new Set(['conveyor belt','roller chain','cutting blade','fan impeller','tension spring','wire rope','gear','motor pinion','conveyor roller','rubber roller','sponge pad','rubber seal','support leg','machine base','guide rail','strip curtain','safety guard','bumper','working stage','stage','ejector pin','pushing arm','pulling arm','motor carbon brush','thermal insulation','alloy material'])
+// ── Grammar assembler ──
+const _nonFluidComps = new Set([
+  'conveyor belt','roller chain','cutting blade','fan impeller','tension spring',
+  'wire rope','gear','motor pinion','conveyor roller','rubber roller','sponge pad',
+  'rubber seal','support leg','machine base','guide rail','strip curtain','safety guard',
+  'bumper','working stage','stage','ejector pin','pushing arm','pulling arm',
+  'motor carbon brush','thermal insulation','alloy material','capacitor bank',
+  'main breaker','rotary vane','exhaust filter','burner',
+  'envelope vacuum picker','envelope magazine','envelope opener','lens pusher',
+  'sealing heater','sealer jaw','date coder','stopper cylinder','rejector mechanism',
+  'diverter','laser head','f-theta focus lens','laser source','fume extractor',
+  'vision camera','camera lens','ring light illumination','illumination unit','vision controller'
+])
 const _fluidSymptoms = new Set(['leakage','seepage','dripping','overflow','continuous flow','no flow','clogged','frequent clogging','flow restriction','not spraying','continuous spraying','intermittent spraying','not refilling','zero pressure'])
 const _measureMods   = new Set(['temperature','relative humidity','system pressure','fluid level','clearance','water content','center alignment'])
 const _urgencyMods   = new Set(['severely','severe','urgent','slightly','minor','moderate','frequently','continuously','occasionally','intermittently','immediately'])
 const _hasSymptoms   = new Set(['no flow','not filling','zero pressure','no power supply','no sound','audio failure','loss of vacuum','low vacuum pressure'])
 const _hasRewrites   = {'no flow':'no water flow','not filling':'not filling','zero pressure':'no pressure','no power supply':'no power supply','audio failure':'no audio','loss of vacuum':'no vacuum','low vacuum pressure':'low vacuum'}
-const _nounSymptoms  = {'error':'is showing an error','media jam':'has a media jam','overload':'is showing an overload fault','short circuit':'has a short circuit','current leakage':'has a current leakage','system crash':'has crashed','QA failed':'has failed QA inspection'}
+const _nounSymptoms  = {'error':'is showing an error','media jam':'has a media jam','overload':'is showing an overload fault','short circuit':'has a short circuit','current leakage':'has a current leakage','system crash':'has crashed','QA failed':'has failed QA inspection','breaker tripped':'has tripped'}
 
 const _joinAnd = p => !p?.length ? '' : p.length===1 ? p[0] : p.length===2 ? p[0]+' and '+p[1] : p.slice(0,-1).join(', ')+', and '+p[p.length-1]
 const _cap     = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s
@@ -546,7 +668,6 @@ function _symptomStr(syms, urgMods, isPlural = false) {
   let parts = _en(syms).map(p => _nounRewrite[p] || p);
   let urgStrs = urgMods ? _en(urgMods) : [];
 
-  // Contextual Adverb Absorption
   if (urgStrs.includes('severely') || urgStrs.includes('severe')) {
     let absorbed = false;
     parts = parts.map(p => {
@@ -567,7 +688,6 @@ function _symptomStr(syms, urgMods, isPlural = false) {
 
   if (!parts.length) return urgSuffix.trim();
 
-  // Handle Noun Symptoms with proper verb assignment
   if (parts.length === 1 && _nounSymptoms[parts[0]]) {
     let phrase = _nounSymptoms[parts[0]];
     if (phrase.startsWith('is ')) phrase = beVerb + ' ' + phrase.slice(3);
@@ -575,10 +695,8 @@ function _symptomStr(syms, urgMods, isPlural = false) {
     return phrase + urgSuffix;
   }
 
-  // Handle Has Symptoms
   if (parts.every(p => _hasSymptoms.has(p))) return haveVerb + ' ' + _joinAnd(parts.map(p => _hasRewrites[p]||p)) + urgSuffix;
   
-  // Default Be Verb
   return beVerb + ' ' + _joinAnd(parts) + urgSuffix;
 }
 
@@ -590,7 +708,7 @@ export function assemble(tokens) {
   if (comps.length && comps.some(c=>_nonFluidComps.has(c.en))) syms=syms.filter(s=>!_fluidSymptoms.has(s.en))
   
   const locPart=_locStr(locs), hasUnk=unks.length>0
-  const isPlural = comps.length > 1 // Plural detection for components
+  const isPlural = comps.length > 1
 
   if (acts.length&&tokens[0].t==='A') {
     let s=_joinAnd(_en(acts)); if(comps.length) s+=' the '+_joinAnd(_en(comps)); if(locPart) s+=' '+locPart; if(syms.length) s+=' — symptom: '+_joinAnd(_en(syms)); if(urgMods.length) s+=' ('+_en(urgMods).join(', ')+')'; if(hasUnk) s+=' '+_en(unks).join(' '); return _cap(s)+'.'
@@ -621,9 +739,9 @@ export function dictTranslate(text) {
   if (!text) return text
   const s = String(text).trim()
   if (_dict[s]) return _dict[s].en
-  if (_phrases[s]) return _phrases[s]   // fast path: raw phrase match
+  if (_phrases[s]) return _phrases[s]   
   const norm = normalizeThaiText(s)
-  if (_phrases[norm]) return _phrases[norm]   // Opt 6: phrase priority before tokenize
+  if (_phrases[norm]) return _phrases[norm]   
   if (_dict[norm]) return _dict[norm].en
   return assemble(tokenize(norm))
 }
@@ -635,23 +753,3 @@ export function hasThai(text) {
 
 export function resetFuzzyHits() { _fuzzyHits = 0 }
 export function resetMetrics() { _metrics.fuzzyHits = 0; _metrics.unknownTokens = 0 }
-
-// ── Opt 10: Unit Test Harness (run with: node --input-type=module < translateDict.js) ──
-// Uncomment to run self-tests:
-/*
-const _testCases = [
-  { input: "สายพานหลุด",    expected: "The conveyor belt has come off." },
-  { input: "มอเตอร์ไม่หมุน", expected: "The electric motor is not rotating." },
-  { input: "ปั๊มน้ำไม่ไหล",  expected: "The fluid pump has no water flow." },
-  { input: "เซ็นเซอร์เออเร่อ",expected: "The sensor is showing an error." },
-  { input: "หม้อต้มไม่ร้อน", expected: "The industrial boiler is not heating." },
-]
-let passed = 0
-for (const { input, expected } of _testCases) {
-  const result = dictTranslate(input)
-  const ok = result === expected
-  if (ok) passed++
-  console.log(`${ok ? '✅' : '❌'} "${input}" → "${result}"${ok ? '' : `\n   expected: "${expected}"`}`)
-}
-console.log(`\n${passed}/${_testCases.length} tests passed`)
-*/
