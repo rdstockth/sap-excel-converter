@@ -76,6 +76,50 @@ export const _dict = {
   "แรงดันต่ำ":{en:"low supply pressure",t:"S"},"แรงดันสูง":{en:"high supply pressure",t:"S"},
   "อุดตัน":{en:"system blockage",t:"S"},"อ่านบาร์โค้ดข้างเดียว":{en:"single-side scan failure",t:"S"},
   "ไม่อ่านบาร์โค้ด":{en:"barcode reader failure",t:"S"},
+  // ── Lens Quality Defect Symptoms ──
+  "เลนส์เป็นรอย":{en:"lens scratched",t:"S"},"เลนส์แตก":{en:"lens cracked",t:"S"},
+  "เลนส์บิ่น":{en:"lens chipped",t:"S"},"เลนส์มัว":{en:"lens haze",t:"S"},
+  "เลนส์ขุ่น":{en:"lens cloudy",t:"S"},"เลนส์เป็นฝ้า":{en:"lens fogging",t:"S"},
+  "เลนส์เบี้ยว":{en:"lens warped",t:"S"},"ผิวไม่เรียบ":{en:"surface roughness defect",t:"S"},
+  "ผิวไม่เงา":{en:"insufficient polishing",t:"S"},"ขัดไม่ออก":{en:"polishing incomplete",t:"S"},
+  "เคลือบไม่ติด":{en:"coating adhesion failure",t:"S"},"เคลือบลอก":{en:"coating peeling",t:"S"},
+  "เคลือบไม่สม่ำเสมอ":{en:"uneven coating",t:"S"},"สีเพี้ยน":{en:"coating color deviation",t:"S"},
+  "ฟองอากาศ":{en:"air bubble defect",t:"S"},"ฝุ่นติด":{en:"dust contamination",t:"S"},
+  "คราบน้ำ":{en:"water stain",t:"S"},
+  // ── Optical Defect Symptoms (grinding/polishing/coating/inspection) ──
+  "ผิวส้ม":{en:"orange peel surface",t:"S"},"ผิวไหม้":{en:"surface burn",t:"S"},
+  "ผิวด่าง":{en:"surface stain",t:"S"},"ลายขัด":{en:"polishing marks",t:"S"},
+  "รอยขนแมว":{en:"fine scratches",t:"S"},"ขัดกิน":{en:"over-polishing",t:"S"},
+  "ขัดไม่ถึง":{en:"under-polishing",t:"S"},"เลนส์บวม":{en:"lens swelling",t:"S"},
+  "เลนส์บาง":{en:"lens too thin",t:"S"},"เลนส์หนา":{en:"lens too thick",t:"S"},
+  "กำลังเลนส์ผิด":{en:"incorrect lens power",t:"S"},
+  "ความโค้งผิด":{en:"incorrect curvature",t:"S"},
+  "ศูนย์เลนส์เพี้ยน":{en:"lens center deviation",t:"S"},
+  // ── Lens Machine Process Symptoms ──
+  "ขัดไม่หมุน":{en:"polishing plate not rotating",t:"S"},
+  "ขัดไม่สม่ำเสมอ":{en:"uneven polishing",t:"S"},"เลนส์หลุด":{en:"lens detached",t:"S"},
+  "ดูดไม่ติด":{en:"vacuum holding failure",t:"S"},"แรงดูดต่ำ":{en:"low vacuum pressure",t:"S"},
+  "เลนส์หมุน":{en:"lens slipping",t:"S"},"เลนส์เอียง":{en:"lens tilted",t:"S"},
+  "ขัดแรงเกิน":{en:"excessive polishing force",t:"S"},"กินผิว":{en:"over grinding",t:"S"},
+  // ── Electrical Fault Symptoms ──
+  "ไฟเกิน":{en:"overvoltage",t:"S"},"ไฟตกบ่อย":{en:"frequent voltage drop",t:"S"},
+  "ไฟไม่เสถียร":{en:"unstable power supply",t:"S"},"เฟสหาย":{en:"phase loss",t:"S"},
+  "เฟสสลับ":{en:"phase sequence error",t:"S"},"ฟิวส์ขาด":{en:"blown fuse",t:"S"},
+  "โอเวอร์เคอเรนท์":{en:"overcurrent fault",t:"S"},"โอเวอร์โวลต์":{en:"overvoltage fault",t:"S"},
+  "ไฟกระชาก":{en:"power surge",t:"S"},"กราวด์รั่ว":{en:"ground leakage",t:"S"},
+  "วงจรเปิด":{en:"open circuit",t:"S"},"ไฟไม่ครบเฟส":{en:"missing phase",t:"S"},
+  "กระแสเกิน":{en:"overcurrent",t:"S"},"สัญญาณขาด":{en:"signal loss",t:"S"},
+  "สัญญาณรบกวน":{en:"signal noise",t:"S"},
+  // ── Motor / Drive Symptoms ──
+  "มอเตอร์ร้อน":{en:"motor overheating",t:"S"},"มอเตอร์ไม่หมุน":{en:"motor not rotating",t:"S"},
+  "มอเตอร์สะดุด":{en:"motor stalling",t:"S"},"สั่นแรง":{en:"severe vibration",t:"S"},
+  "ตำแหน่งเพี้ยน":{en:"position drift",t:"S"},
+  // ── Process / Production Symptoms ──
+  "ชิ้นงานติด":{en:"workpiece jam",t:"S"},"ชิ้นงานเอียง":{en:"workpiece misaligned",t:"S"},
+  "ชิ้นงานตก":{en:"workpiece dropped",t:"S"},"งานค้าง":{en:"process stalled",t:"S"},
+  "งานล้น":{en:"product overflow",t:"S"},"หยิบไม่ขึ้น":{en:"pick failure",t:"S"},
+  "วางไม่ลง":{en:"place failure",t:"S"},"หยิบพลาด":{en:"mis-pick",t:"S"},
+  "ขนาดผิด":{en:"dimension out of spec",t:"S"},"ตำแหน่งผิด":{en:"incorrect position",t:"S"},
   // ── Components (C) ──
   "สายพาน":{en:"conveyor belt",t:"C"},"สายพาย":{en:"conveyor belt",t:"C"},
   "สายพราน":{en:"conveyor belt",t:"C"},"โซ่":{en:"roller chain",t:"C"},
@@ -158,6 +202,62 @@ export const _dict = {
   "เครื่องผสม":{en:"mixing machine",t:"C"},"เครื่องแพ็ค":{en:"packing machine",t:"C"},
   "เครื่องล้าง":{en:"washing machine",t:"C"},"เครื่องพิมพ์":{en:"printing machine",t:"C"},
   "เครื่องอบ":{en:"drying machine",t:"C"},
+  // ── Optical Manufacturing Components ──
+  "เลนส์":{en:"optical lens",t:"C"},"บล็อกเลนส์":{en:"lens block",t:"C"},
+  "แม่พิมพ์เลนส์":{en:"lens mold",t:"C"},"แท่นขัด":{en:"polishing plate",t:"C"},
+  "จานขัด":{en:"polishing plate",t:"C"},"จานเจียร":{en:"grinding plate",t:"C"},
+  "หัวจับเลนส์":{en:"lens holder",t:"C"},"หัวบล็อก":{en:"blocking chuck",t:"C"},
+  "แท่นหมุน":{en:"rotary table",t:"C"},"สปินเดิล":{en:"spindle",t:"C"},
+  "จิ๊ก":{en:"alignment jig",t:"C"},"ฟิกซ์เจอร์":{en:"fixture",t:"C"},
+  "แท่นวาง":{en:"work platform",t:"C"},"ถาดเลนส์":{en:"lens tray",t:"C"},
+  "ตะแกรงเลนส์":{en:"lens basket",t:"C"},"หัวดูด":{en:"vacuum head",t:"C"},
+  "ปั๊มสุญญากาศ":{en:"vacuum pump",t:"C"},"ท่อสุญญากาศ":{en:"vacuum line",t:"C"},
+  // ── Additional Optical Machine Parts ──
+  "ผ้าขัด":{en:"polishing pad",t:"C"},"เพลาขัด":{en:"polishing spindle",t:"C"},
+  "หัวจับ":{en:"chuck",t:"C"},"แท่นจับ":{en:"clamping stage",t:"C"},
+  "ตัวตั้งศูนย์":{en:"alignment unit",t:"C"},"ชุดสุญญากาศ":{en:"vacuum system",t:"C"},
+  "หัววัด":{en:"measurement probe",t:"C"},
+  "เครื่องวัดผิว":{en:"surface profiler",t:"C"},"เครื่องวัดศูนย์":{en:"centering machine",t:"C"},
+  // ── Lens Process Equipment ──
+  "เครื่องเจียรเลนส์":{en:"lens grinding machine",t:"C"},
+  "เครื่องขัดเลนส์":{en:"lens polishing machine",t:"C"},
+  "เครื่องเคลือบเลนส์":{en:"lens coating machine",t:"C"},
+  "เครื่องล้างเลนส์":{en:"lens cleaning machine",t:"C"},
+  "เครื่องบล็อกเลนส์":{en:"lens blocking machine",t:"C"},
+  "เครื่องดีบล็อก":{en:"lens deblocking machine",t:"C"},
+  "เครื่องตรวจเลนส์":{en:"lens inspection machine",t:"C"},
+  "เครื่องวัดกำลังเลนส์":{en:"lens power meter",t:"C"},
+  "เครื่องวัดความโค้ง":{en:"lens curvature meter",t:"C"},
+  "เครื่องวัดความหนา":{en:"lens thickness gauge",t:"C"},
+  // ── Lens Process Materials ──
+  "ผงขัด":{en:"polishing compound",t:"C"},"น้ำยาขัด":{en:"polishing slurry",t:"C"},
+  "สารเคลือบ":{en:"coating material",t:"C"},"สารเคลือบแข็ง":{en:"hard coating",t:"C"},
+  "สารเคลือบกันสะท้อน":{en:"anti-reflective coating",t:"C"},
+  "น้ำยาอัลตร้าโซนิค":{en:"ultrasonic cleaning solution",t:"C"},
+  "กาวบล็อก":{en:"blocking adhesive",t:"C"},"เทปกันรอย":{en:"protective tape",t:"C"},
+  // ── Mechanical Wear Parts ──
+  "ลูกปืน":{en:"bearing",t:"C"},"ตลับลูกปืน":{en:"bearing housing",t:"C"},
+  "แบริ่ง":{en:"bearing",t:"C"},"บูช":{en:"bushing",t:"C"},
+  "ซีลน้ำมัน":{en:"oil seal",t:"C"},"ซีลยาง":{en:"rubber seal",t:"C"},
+  "โอริงยาง":{en:"rubber o-ring",t:"C"},"พูลเลย์":{en:"pulley",t:"C"},
+  "มู่เล่ย์":{en:"pulley",t:"C"},"โซ่สเตอร์":{en:"sprocket",t:"C"},
+  "คัปปลิ้ง":{en:"shaft coupling",t:"C"},"เพลา":{en:"drive shaft",t:"C"},
+  "เฟืองทด":{en:"reduction gear",t:"C"},"เกียร์บ็อก":{en:"gearbox",t:"C"},
+  "เกียร์บ็อกซ์":{en:"gearbox",t:"C"},"ลูกกลิ้ง":{en:"roller",t:"C"},
+  "ลูกล้อ":{en:"idler roller",t:"C"},"ยอย":{en:"coupling joint",t:"C"},
+  "สลักเพลา":{en:"shaft pin",t:"C"},"สายพานไทม์มิ่ง":{en:"timing belt",t:"C"},
+  "ผ้าเบรก":{en:"brake pad",t:"C"},
+  // ── Automation / Electrical Components ──
+  "PLC":{en:"PLC controller",t:"C"},"อินเวอร์เตอร์":{en:"variable frequency drive",t:"C"},
+  "VFD":{en:"variable frequency drive",t:"C"},"เซอร์โวมอเตอร์":{en:"servo motor",t:"C"},
+  "เซอร์โวไดรฟ์":{en:"servo drive",t:"C"},"รีเลย์":{en:"relay module",t:"C"},
+  "แมกเนติก":{en:"magnetic contactor",t:"C"},"คอนแทคเตอร์":{en:"contactor",t:"C"},
+  "คอนแทค":{en:"contactor",t:"C"},"เบรกเกอร์":{en:"circuit breaker",t:"C"},
+  "ฟิวส์":{en:"fuse",t:"C"},"เทอร์มินอล":{en:"terminal block",t:"C"},
+  "เพาเวอร์ซัพพลาย":{en:"power supply unit",t:"C"},"เอ็นโค้ดเดอร์":{en:"rotary encoder",t:"C"},
+  "ลิมิตสวิทช์":{en:"limit switch",t:"C"},"โพร๊ก":{en:"proximity sensor",t:"C"},
+  "โฟโต้":{en:"photoelectric sensor",t:"C"},"โฟโต้เซ็นเซอร์":{en:"photoelectric sensor",t:"C"},
+  "โมดูล":{en:"control module",t:"C"},
   // ── Actions (A) ──
   "เปลี่ยน":{en:"replace",t:"A"},"เปลื่ยน":{en:"replace",t:"A"},
   "เปลียน":{en:"replace",t:"A"},"เปรี่ยน":{en:"replace",t:"A"},
@@ -182,6 +282,24 @@ export const _dict = {
   "เบิก":{en:"spare part requisition",t:"A"},"เบิกของ":{en:"material withdrawal",t:"A"},
   "สั่ง":{en:"issue PO",t:"A"},"สลับ":{en:"bypass",t:"A"},
   "หุ้มฉนวน":{en:"apply insulation",t:"A"},
+  // ── Lens Process Actions ──
+  "ขัด":{en:"polish",t:"A"},"เจียร":{en:"grind",t:"A"},
+  "บล็อก":{en:"block lens",t:"A"},"ดีบล็อก":{en:"deblock lens",t:"A"},
+  "เคลือบ":{en:"apply coating",t:"A"},
+  "ตั้งแรงดูด":{en:"adjust vacuum pressure",t:"A"},
+  "ตั้งแรงกด":{en:"adjust polishing force",t:"A"},
+  "ตั้งความเร็ว":{en:"adjust rotation speed",t:"A"},
+  "เปลี่ยนผงขัด":{en:"replace polishing compound",t:"A"},
+  "เติมน้ำยาขัด":{en:"add polishing slurry",t:"A"},
+  // ── Maintenance / Automation Actions ──
+  "รีเซ็ต":{en:"reset",t:"A"},"รีสตาร์ท":{en:"restart",t:"A"},
+  "รีบูต":{en:"reboot",t:"A"},"ขัน":{en:"tighten",t:"A"},
+  "คลาย":{en:"loosen",t:"A"},"อัดจารบี":{en:"apply grease",t:"A"},
+  "หล่อลื่น":{en:"lubricate",t:"A"},"ตั้งค่า":{en:"configure",t:"A"},
+  "โปรแกรม":{en:"program",t:"A"},"ตั้งโปรแกรม":{en:"program",t:"A"},
+  "โหลดโปรแกรม":{en:"upload program",t:"A"},"ดาวน์โหลดโปรแกรม":{en:"download program",t:"A"},
+  "ทดสอบ":{en:"test",t:"A"},"รีเซ็ตเออเร่อ":{en:"reset fault",t:"A"},
+  "เดินเครื่อง":{en:"run test",t:"A"},"ทดลอง":{en:"trial run",t:"A"},
   // ── Locations (L) ──
   "ห้องคลีนรูม":{en:"cleanroom",t:"L"},"ห้องผสม":{en:"formulation room",t:"L"},
   "ห้องโมโนเมอร์":{en:"monomer preparation room",t:"L"},"ห้องแยกงาน":{en:"sorting area",t:"L"},
@@ -220,7 +338,11 @@ const _normRules = [
   [/โฟเลท/g, 'โฟลมิเตอร์'], [/สเลนเดอร์/g, 'กระบอกลม'],
   [/ฟุตสวิตท์|ฟุ๊ตสวิทช์/g, 'ฟุทสวิทส์'],
   [/น๊อค/g, 'น็อต'], [/น๊อต/g, 'น็อต'],
+  [/เซนเซอร์/g, 'เซ็นเซอร์'],
   [/มอเตอ(?=[^ร]|$)/g, 'มอเตอร์'],
+  [/ปั้ม/g, 'ปั๊ม'],
+  [/วาล(?=[^ว์]|$)/g, 'วาล์ว'],
+  [/แวคคัม/g, 'แวคคั่ม'],
   [/เซนเซอร์|เซ็นเซอ(?=[^ร]|$)/g, 'เซ็นเซอร์'],
   [/สวิทซ์|สวิตช์|สวิทส์/g, 'สวิทช์'],
   [/เอ่อเร่อ|เอเร่อ/g, 'เออเร่อ'], [/แนนเกินไป/g, 'แน่นเกินไป'],
@@ -228,6 +350,10 @@ const _normRules = [
   [/อ่านบาร์โค๊ต|อ่านบาร์โค้ต|อ่านบาร์โคด/g, 'ไม่อ่านบาร์โค้ด'],
   [/บาร์โค๊ตข้างเดียว|บาร์โค้ตข้างเดียว/g, 'อ่านบาร์โค้ดข้างเดียว'],
   [/ใม่/g, 'ไม่'],
+  [/มู่เล่ย์/g, 'พูลเลย์'],
+  [/เบรคเกอร์/g, 'เบรกเกอร์'],
+  [/อินเวอร์เตอ(?=[^ร]|$)/g, 'อินเวอร์เตอร์'],
+  [/เซอร์โวมอเตอ(?=[^ร]|$)/g, 'เซอร์โวมอเตอร์'],
   [/([\u0E00-\u0E7F])\1{2,}/g, '$1$1'],
   [/\s+/g, ' '],
 ]
@@ -260,10 +386,23 @@ function levenshtein(a, b) {
 }
 
 let _dictKeys = null
+let _dictByLen = null
+
 function getDictKeys() {
   if (_dictKeys) return _dictKeys
   _dictKeys = Object.keys(_dict).sort((a, b) => b.length - a.length)
   return _dictKeys
+}
+
+function getDictByLen() {
+  if (_dictByLen) return _dictByLen
+  _dictByLen = {}
+  for (const k of Object.keys(_dict)) {
+    const l = Array.from(k).length
+    if (!_dictByLen[l]) _dictByLen[l] = []
+    _dictByLen[l].push(k)
+  }
+  return _dictByLen
 }
 
 const _fuzzyCache = {}
@@ -271,14 +410,20 @@ export let _fuzzyHits = 0
 function fuzzyLookup(word, threshold = 0.80) {
   if (!word || word.length < 2) return null
   if (_fuzzyCache[word] !== undefined) return _fuzzyCache[word]
-  const keys = getDictKeys(), wChars = Array.from(word), wLen = wChars.length
+  const byLen = getDictByLen()
+  const wChars = Array.from(word), wLen = wChars.length
   let best = null, bestSim = threshold - 0.001
-  for (const k of keys) {
-    const kLen = Array.from(k).length
-    if (Math.min(wLen, kLen) / Math.max(wLen, kLen) < threshold) continue
-    const dist = levenshtein(word, k)
-    const sim = 1 - dist / Math.max(wLen, kLen)
-    if (sim > bestSim) { bestSim = sim; best = { en: _dict[k].en, t: _dict[k].t, key: k, sim } }
+  // Only check buckets whose length ratio passes threshold — skips ~60-70% of keys
+  const minLen = Math.ceil(wLen * threshold)
+  const maxLen = Math.floor(wLen / threshold)
+  for (let l = minLen; l <= maxLen; l++) {
+    const bucket = byLen[l]
+    if (!bucket) continue
+    for (const k of bucket) {
+      const dist = levenshtein(word, k)
+      const sim = 1 - dist / Math.max(wLen, l)
+      if (sim > bestSim) { bestSim = sim; best = { en: _dict[k].en, t: _dict[k].t, key: k, sim } }
+    }
   }
   _fuzzyCache[word] = best
   if (best) _fuzzyHits++
