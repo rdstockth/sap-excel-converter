@@ -28,8 +28,8 @@ export const _dict = {
   "ไม่ตรง":{en:"misaligned",t:"S"},"เคลื่อนไม่ตรงกัน":{en:"synchronization loss",t:"S"},
   "ศูนย์ไม่ได้":{en:"off-center",t:"S"},"เช็นเตอร์":{en:"off-center",t:"S"},
   "ไม่ตรงกลาง":{en:"off-center",t:"S"},"เอียง":{en:"tilted",t:"S"},
-  "กระตุก":{en:"jerking",t:"S"},"สั่น":{en:"excessive vibration",t:"S"},
-  "มีเสียงดัง":{en:"abnormal noise",t:"S"},"กระแทกเสียงดัง":{en:"loud impact noise",t:"S"},
+  "กระตุก":{en:"jerking",t:"S"},"สั่น":{en:"vibrating excessively",t:"S"},
+  "มีเสียงดัง":{en:"making abnormal noise",t:"S"},"กระแทกเสียงดัง":{en:"making a loud impact noise",t:"S"},
   "หัก":{en:"snapped",t:"S"},"ขาด":{en:"torn",t:"S"},
   "แตก":{en:"cracked",t:"S"},"สึก":{en:"worn out",t:"S"},
   "เป็นรอย":{en:"scratched",t:"S"},"โก่งขึ้น":{en:"buckled",t:"S"},
@@ -112,7 +112,7 @@ export const _dict = {
   "สัญญาณรบกวน":{en:"signal noise",t:"S"},
   // ── Motor / Drive Symptoms ──
   "มอเตอร์ร้อน":{en:"motor overheating",t:"S"},"มอเตอร์ไม่หมุน":{en:"motor not rotating",t:"S"},
-  "มอเตอร์สะดุด":{en:"motor stalling",t:"S"},"สั่นแรง":{en:"severe vibration",t:"S"},
+  "มอเตอร์สะดุด":{en:"motor stalling",t:"S"},"สั่นแรง":{en:"vibrating severely",t:"S"},
   "ตำแหน่งเพี้ยน":{en:"position drift",t:"S"},
   // ── Process / Production Symptoms ──
   "ชิ้นงานติด":{en:"workpiece jam",t:"S"},"ชิ้นงานเอียง":{en:"workpiece misaligned",t:"S"},
@@ -477,15 +477,20 @@ const _normRules = [
   [/([\u0E00-\u0E7F])\1{2,}/g, '$1$1'],
   [/\s+/g, ' '],
 ]
+
 const _normCache = new LRU(5000)
 export function normalizeThaiText(text) {
   if (!text) return text
   const s = String(text).trim()
-  if (_normCache[s] !== undefined) return _normCache[s]
+  const cached = _normCache.get(s)
+  if (cached !== undefined) return cached
+  
   let out = s
   for (const [rx, rep] of _normRules) out = out.replace(rx, rep)
-  _normCache[s] = out.trim()
-  return _normCache[s]
+  out = out.trim()
+  
+  _normCache.set(s, out)
+  return out
 }
 
 // ── Levenshtein distance ──
