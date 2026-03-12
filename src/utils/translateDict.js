@@ -123,6 +123,28 @@ export const _dict = Object.freeze({
   "วางไม่ลง":{en:"place failure",t:"S"},"หยิบพลาด":{en:"mis-pick",t:"S"},
   "ขนาดผิด":{en:"dimension out of spec",t:"S"},"ตำแหน่งผิด":{en:"incorrect position",t:"S"},
 
+  // ── Pneumatic Symptoms ──
+  "ลมรั่ว":{en:"air leakage",t:"S"},"ลมไม่เข้า":{en:"no air supply",t:"S"},
+  "ไม่มีลม":{en:"no air supply",t:"S"},"แรงดันลมตก":{en:"air pressure drop",t:"S"},
+  "แรงดันลมต่ำ":{en:"low air pressure",t:"S"},"ลมไม่พอ":{en:"insufficient air pressure",t:"S"},
+  "กระบอกลมช้า":{en:"slow cylinder stroke",t:"S"},"กระบอกลมไม่ทำงาน":{en:"cylinder not actuating",t:"S"},
+  "วาล์วค้าง":{en:"valve stuck",t:"S"},"วาล์วรั่ว":{en:"valve leaking",t:"S"},
+
+  // ── Corrosion & Wear Symptoms ──
+  "เป็นสนิม":{en:"corroded",t:"S"},"สนิม":{en:"rust",t:"S"},
+  "กัดกร่อน":{en:"corrosion damage",t:"S"},"สึกหรอ":{en:"worn",t:"S"},
+  "ผุ":{en:"deteriorated",t:"S"},"กะเทาะ":{en:"chipped",t:"S"},
+
+  // ── Communication & Control Symptoms ──
+  "การสื่อสารขาด":{en:"communication lost",t:"S"},"ไม่สื่อสาร":{en:"communication lost",t:"S"},
+  "ไทม์เอาท์":{en:"communication timeout",t:"S"},"เน็ตเวิร์คขาด":{en:"network disconnected",t:"S"},
+  "โปรแกรมล่ม":{en:"program crashed",t:"S"},"โปรแกรมค้าง":{en:"program frozen",t:"S"},
+  "ไม่ตอบสนอง":{en:"unresponsive",t:"S"},"หน้าจอค้าง":{en:"screen frozen",t:"S"},
+  "ขั้วไหม้":{en:"burnt terminal",t:"S"},"สายไหม้":{en:"burnt wire",t:"S"},
+  "แรงบิดต่ำ":{en:"low torque",t:"S"},"กำลังตก":{en:"power output drop",t:"S"},
+  "โอเวอร์เทมป์":{en:"overtemperature fault",t:"S"},"อุณหภูมิเกิน":{en:"temperature over limit",t:"S"},
+  "ม่านแสงทริป":{en:"light curtain triggered",t:"S"},"เซฟตี้ทริป":{en:"safety circuit tripped",t:"S"},
+
   // ── Components (C) ──
   "สายพาน":{en:"conveyor belt",t:"C"},"สายพาย":{en:"conveyor belt",t:"C"},
   "สายพราน":{en:"conveyor belt",t:"C"},"โซ่":{en:"roller chain",t:"C"},
@@ -254,6 +276,45 @@ export const _dict = Object.freeze({
   "ลิมิตสวิทช์":{en:"limit switch",t:"C"},"โพร๊ก":{en:"proximity sensor",t:"C"},
   "โฟโต้":{en:"photoelectric sensor",t:"C"},"โฟโต้เซ็นเซอร์":{en:"photoelectric sensor",t:"C"},
   "โมดูล":{en:"control module",t:"C"},
+  "ไอโอการ์ด":{en:"I/O card",t:"C"},"อินพุตการ์ด":{en:"input card",t:"C"},
+  "เอาต์พุตการ์ด":{en:"output card",t:"C"},"คอมมิวนิเคชั่นการ์ด":{en:"communication card",t:"C"},
+  "ซอฟต์สตาร์ท":{en:"soft starter",t:"C"},"สตาร์ทเตอร์":{en:"motor starter",t:"C"},
+  "ไดรฟ์":{en:"motor drive",t:"C"},"ไทเมอร์":{en:"timer relay",t:"C"},
+  "เคาน์เตอร์รีเลย์":{en:"counter relay",t:"C"},"โอเวอร์โหลดรีเลย์":{en:"overload relay",t:"C"},
+  "เทอร์มอลโอเวอร์โหลด":{en:"thermal overload relay",t:"C"},"เทอร์โมคัปเปิล":{en:"thermocouple",t:"C"},
+  "PT100":{en:"RTD sensor",t:"C"},"SCADA":{en:"SCADA system",t:"C"},
+  "สกาดา":{en:"SCADA system",t:"C"},"HMI":{en:"HMI terminal",t:"C"},
+  "UPS":{en:"UPS unit",t:"C"},"ยูพีเอส":{en:"UPS unit",t:"C"},
+  "แบตเตอรี่ UPS":{en:"UPS battery",t:"C"},
+
+  // ── Pneumatic Accessories ──
+  "ถังลม":{en:"air receiver tank",t:"C"},"ถังพักลม":{en:"air buffer tank",t:"C"},
+  "เรกูเลเตอร์":{en:"pressure regulator",t:"C"},"เรกกูเลเตอร์":{en:"pressure regulator",t:"C"},
+  "ลูบริเคเตอร์":{en:"air line lubricator",t:"C"},"ชุด FRL":{en:"FRL unit",t:"C"},
+  "แมนิโฟลด์":{en:"pneumatic manifold",t:"C"},"ไซเลนเซอร์":{en:"exhaust silencer",t:"C"},
+  "ชุดกรองลม":{en:"compressed air filter unit",t:"C"},"วาล์วกัน":{en:"check valve",t:"C"},
+  "วาล์วควบคุมความเร็ว":{en:"flow control valve",t:"C"},"วาล์ว 5/2":{en:"5/2 directional valve",t:"C"},
+  "วาล์ว 3/2":{en:"3/2 directional valve",t:"C"},"โซลินอยด์":{en:"solenoid valve",t:"C"},
+
+  // ── Linear Motion ──
+  "บอลสกรู":{en:"ball screw",t:"C"},"ลิเนียร์ไกด์":{en:"linear guide rail",t:"C"},
+  "รางสไลด์":{en:"slide rail",t:"C"},"แกนสไลด์":{en:"linear slide shaft",t:"C"},
+  "สกรูลีด":{en:"lead screw",t:"C"},"แกนลีด":{en:"lead shaft",t:"C"},
+  "สกรูบอล":{en:"ball screw assembly",t:"C"},"แท่นเลื่อน":{en:"linear stage",t:"C"},
+
+  // ── Air Movement ──
+  "พัดลม":{en:"cooling fan",t:"C"},"พัดลมระบาย":{en:"ventilation fan",t:"C"},
+  "โบลว์เวอร์":{en:"industrial blower",t:"C"},"โบลว์เออร์":{en:"industrial blower",t:"C"},
+  "พัดลมดูดควัน":{en:"fume extraction fan",t:"C"},"มอเตอร์พัดลม":{en:"fan motor",t:"C"},
+  "ใบพัด":{en:"fan blade",t:"C"},"แอร์ไนฟ์":{en:"air knife",t:"C"},
+
+  // ── Safety & Signal ──
+  "อีสต็อป":{en:"emergency stop button",t:"C"},"ปุ่มฉุกเฉิน":{en:"emergency stop button",t:"C"},
+  "ม่านแสง":{en:"safety light curtain",t:"C"},"ไลท์เคอร์เทน":{en:"safety light curtain",t:"C"},
+  "แลมป์สัญญาณ":{en:"signal tower lamp",t:"C"},"สัญญาณไฟ":{en:"indicator light",t:"C"},
+  "ไฟแสดงสถานะ":{en:"status indicator light",t:"C"},"บัซเซอร์":{en:"alarm buzzer",t:"C"},
+  "สัญญาณเตือน":{en:"audible alarm",t:"C"},"เซฟตี้รีเลย์":{en:"safety relay",t:"C"},
+  "ประตูนิรภัย":{en:"safety door switch",t:"C"},"แมทสวิทช์":{en:"mat safety switch",t:"C"},
 
   // ── Actions (A) ──
   "เปลี่ยน":{en:"replace",t:"A"},"เปลื่ยน":{en:"replace",t:"A"},
@@ -294,6 +355,22 @@ export const _dict = Object.freeze({
   "ดาวน์โหลดโปรแกรม":{en:"download program",t:"A"},"ทดสอบ":{en:"test",t:"A"},
   "รีเซ็ตเออเร่อ":{en:"reset fault",t:"A"},"เดินเครื่อง":{en:"run test",t:"A"},
   "ทดลอง":{en:"trial run",t:"A"},
+  "บัดกรี":{en:"solder joint",t:"A"},"ต่อสาย":{en:"reconnect wiring",t:"A"},
+  "ต่อสายไฟ":{en:"rewire",t:"A"},"ตัดสายไฟ":{en:"cut wire",t:"A"},
+  "เปลี่ยนแบตเตอรี่":{en:"replace battery",t:"A"},"ชาร์จแบตเตอรี่":{en:"charge battery",t:"A"},
+  "เปลี่ยนน้ำมัน":{en:"change oil",t:"A"},"ถ่ายน้ำมัน":{en:"drain oil",t:"A"},
+  "เติมน้ำมันเกียร์":{en:"add gear oil",t:"A"},"ทาจาระบี":{en:"apply grease",t:"A"},
+  "อัดจาระบี":{en:"apply grease",t:"A"},"เปลี่ยนไส้กรองลม":{en:"replace air filter",t:"A"},
+  "วัดความต้านทาน":{en:"measure resistance",t:"A"},"วัดกระแส":{en:"measure current",t:"A"},
+  "วัดแรงดันไฟ":{en:"measure voltage",t:"A"},"เมกเกอร์":{en:"megger test",t:"A"},
+  "สำรองข้อมูล":{en:"backup data",t:"A"},"แบ็คอัพ":{en:"backup data",t:"A"},
+  "อัปเดตเฟิร์มแวร์":{en:"update firmware",t:"A"},"อัปเดตโปรแกรม":{en:"update program",t:"A"},
+  "รีโปรแกรม":{en:"reprogram",t:"A"},"ตั้งค่าใหม่":{en:"reconfigure",t:"A"},
+  "เปลี่ยนซีล":{en:"replace seal",t:"A"},"เปลี่ยนโอริง":{en:"replace o-ring",t:"A"},
+  "เปลี่ยนไส้กรอง":{en:"replace filter element",t:"A"},"เป่าทำความสะอาด":{en:"blow clean",t:"A"},
+  "ตรวจรับ":{en:"incoming inspection",t:"A"},"บันทึก":{en:"record",t:"A"},
+  "ล็อก":{en:"lock out",t:"A"},"ปลดล็อก":{en:"unlock",t:"A"},
+  "สอบเทียบ":{en:"calibrate",t:"A"},"ตรวจโปรแกรม":{en:"check program",t:"A"},
 
   // ── Locations (L) ──
   "ห้องคลีนรูม":{en:"cleanroom",t:"L"},"ห้องผสม":{en:"formulation room",t:"L"},
@@ -310,6 +387,15 @@ export const _dict = Object.freeze({
   "หลังเครื่อง":{en:"machine rear",t:"L"},"ซ้าย":{en:"left side",t:"L"},
   "ขวา":{en:"right side",t:"L"},"สเต๊ปแรก":{en:"initial process step",t:"L"},
   "สเต๊ปสุดท้าย":{en:"final process step",t:"L"},
+  "สถานี":{en:"workstation",t:"L"},"จุดรับงาน":{en:"loading station",t:"L"},
+  "จุดส่งงาน":{en:"unloading station",t:"L"},"หัวไลน์":{en:"line entry point",t:"L"},
+  "ท้ายไลน์":{en:"line exit point",t:"L"},"ห้องผลิต":{en:"production area",t:"L"},
+  "ห้องซ่อม":{en:"maintenance workshop",t:"L"},"ห้องควบคุม":{en:"control room",t:"L"},
+  "ห้องเย็น":{en:"cold room",t:"L"},"ห้องแลป":{en:"laboratory room",t:"L"},
+  "โซน A":{en:"zone A",t:"L"},"โซน B":{en:"zone B",t:"L"},
+  "โซน C":{en:"zone C",t:"L"},"แนวการผลิต":{en:"production line",t:"L"},
+  "ด้านขาเข้า":{en:"infeed side",t:"L"},"ด้านขาออก":{en:"outfeed side",t:"L"},
+  "ท่อเมน":{en:"main header line",t:"L"},"ตู้ไฟหลัก":{en:"main electrical panel",t:"L"},
 
   // ── Modifiers (M) ──
   "อุณหภูมิ":{en:"temperature",t:"M"},"ความชื้น":{en:"relative humidity",t:"M"},
@@ -322,6 +408,9 @@ export const _dict = Object.freeze({
   "บ่อย":{en:"frequently",t:"M"},"ตลอด":{en:"continuously",t:"M"},
   "บางครั้ง":{en:"occasionally",t:"M"},"เป็นพักๆ":{en:"intermittently",t:"M"},
   "ทันที":{en:"immediately",t:"M"},
+  "เป็นประจำ":{en:"regularly",t:"M"},"ชั่วคราว":{en:"temporarily",t:"M"},
+  "ถาวร":{en:"permanently",t:"M"},"นาน":{en:"prolonged",t:"M"},
+  "เร็ว":{en:"quickly",t:"M"},"ช้า":{en:"slowly",t:"M"},
 
   // =======================================================================
   // 🏭 UTILITIES & FACILITY SYSTEMS
@@ -443,6 +532,19 @@ export const _phrases = Object.freeze({
   'หม้อต้มไม่ร้อน': 'The industrial boiler is not heating.',
   'หน้าจอค้าง': 'The HMI screen is unresponsive.',
   'PLCค้าง': 'The PLC is frozen.',
+  'มอเตอร์ร้อน': 'The electric motor is overheating.',
+  'สายพานลื่น': 'The conveyor belt is slipping.',
+  'อินเวอร์เตอร์ทริป': 'The variable frequency drive has tripped.',
+  'อินเวอร์เตอร์เออเร่อ': 'The variable frequency drive is showing an error.',
+  'กระบอกลมค้าง': 'The pneumatic cylinder is stuck.',
+  'วาล์วรั่ว': 'The control valve is leaking.',
+  'ปั๊มไม่ดูด': 'The fluid pump has no suction.',
+  'เซ็นเซอร์ไม่ตรวจจับ': 'The sensor is not detecting.',
+  'PLCไม่สื่อสาร': 'The PLC controller has lost communication.',
+  'เซอร์โวเออเร่อ': 'The servo drive is showing an error.',
+  'ลิมิตสวิทช์ไม่ทำงาน': 'The limit switch is not actuating.',
+  'แบริ่งร้อน': 'The bearing is overheating.',
+  'คัปปลิ้งหัก': 'The shaft coupling is broken.',
 })
 
 // ── Grammar noun-phrase rewrites ──
@@ -619,6 +721,16 @@ const _normRules = [
   [/เลเซอ(?=[^ร]|$)/g, 'เลเซอร์'],
   [/อ่านบาร์โค๊ต|อ่านบาร์โค้ต|อ่านบาร์โคด/g, 'ไม่อ่านบาร์โค้ด'],
   [/บาร์โค๊ตข้างเดียว|บาร์โค้ตข้างเดียว/g, 'อ่านบาร์โค้ดข้างเดียว'],
+  [/เอนโค้เดอ(?=[^ร]|$)|เอนโค้ดเดอ(?=[^ร]|$)/g, 'เอ็นโค้ดเดอร์'],
+  [/พีแอลซี/g, 'PLC'],
+  [/เฮชเอ็มไอ/g, 'HMI'],
+  [/สกาดา/g, 'SCADA'],
+  [/ลิมิตสวิทส์|ลิมิตสวิช|ลิมิตสวิตซ์/g, 'ลิมิตสวิทช์'],
+  [/เทอร์โมคัปเปิ้ล|เทอร์โมคัพเปิล|เทอร์โมคับเปิล/g, 'เทอร์โมคัปเปิล'],
+  [/โบลว์เออ(?=[^ร]|$)|โบลเวอ(?=[^ร]|$)/g, 'โบลว์เวอร์'],
+  [/อีสต๊อป|emergency stop/gi, 'อีสต็อป'],
+  [/ซอฟสตาร์ท|ซ็อฟต์สตาร์ท/g, 'ซอฟต์สตาร์ท'],
+  [/โซลินอย(?=[^ด์]|$)/g, 'โซลินอยด์'],
 
   // ===== motion / drive =====
   [/มอเตอ(?=[^ร]|$)/g, 'มอเตอร์'],
