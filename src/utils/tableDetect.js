@@ -3,7 +3,7 @@ export function detectTableType(records) {
   if (!records || !records.length) return 'unknown'
   const keys = Object.keys(records[0]).map(k => k.toLowerCase())
   const has = (...kws) => kws.every(k => keys.some(key => key.includes(k)))
-  if (has('order type') && has('bas. start') && has('total act'))   return 'IW38'
+  if (has('order type') && has('bas. start') && has('total act') && has('revision'))   return 'IW38'
   if (has('confirm') && has('wkctract') && has('act. work'))        return 'IW47'
   if (has('order number') && has('g/r cost') && has('gr/gi'))       return 'ZPM02'
   if (has('mn type') && has('working time') && has('break down'))   return 'ZPUCMN'
@@ -41,7 +41,7 @@ export function hoursToText(r) {
   const damage = [v(r['Damage Code']), v(r['Damage Text'])].filter(Boolean).join(' - ')
   const cause  = [v(r['Cause Code']),  v(r['Cause Text'])].filter(Boolean).join(' - ')
   const action = [v(r['Activity Code']),v(r['Activity Text'])].filter(Boolean).join(' - ')
-  return lines(['[Hours] Work Order ' + v(r['MO no.']) + ' | Type: ' + v(r['MO type']), fmt('Description', r['Description']), fmt('Notification', r['MN no.']), fmt('Equipment', r['Equipment']), fmt('Functional Location', r['Functional Location']), fmt('Inventory Number', r['Inventory number']), fmt('Cost Center', r['Cost Center']), fmt('Object Part', r['Object Part Text']), damage ? 'Damage: ' + damage : null, cause ? 'Cause: ' + cause : null, action ? 'Action: ' + action : null, fmt('MO Created Date', r['MO Created Date']), fmt('TECO Date', r['MO Teco Da']), fmt('Actual Labor Duration', r['Act. Labor duration']), fmt('Spare Part Cost (THB)', r['Spare Part Cost']), fmt('Consumed SP Cost (THB)', r['Consmpt SP Cost']), fmt('TS Service Cost (THB)', r['TS service Cost']), fmt('Total Cost (THB)', r['Total Cost'])])
+  return lines(['[Hours] Work Order ' + v(r['MO no.']) + ' | Type: ' + v(r['MO Type']), fmt('Description', r['Description']), fmt('Notification', r['MN no.']), fmt('Equipment', r['Equipment']), fmt('Functional Location', r['Functional Location']), fmt('Inventory Number', r['Inventory number']), fmt('Cost Center', r['Cost Center']), fmt('Object Part', r['Object Part Text']), damage ? 'Damage: ' + damage : null, cause ? 'Cause: ' + cause : null, action ? 'Action: ' + action : null, fmt('MO Created Date', r['MO Created Date']), fmt('TECO Date', r['MO Teco Da']), fmt('Actual Labor Duration', r['Act. Labor duration']), fmt('Spare Part Cost (THB)', r['Spare Part Cost']), fmt('Consumed SP Cost (THB)', r['Consmpt SP Cost']), fmt('TS Service Cost (THB)', r['TS service Cost']), fmt('Total Cost (THB)', r['Total Cost'])])
 }
 
 export function genericToText(r) {
@@ -65,7 +65,7 @@ export function splitRecordsToRagTexts(records, filename, splitSize, doSplit) {
     const chunk = recordToChunk(r, tableType)
     return chunk ? '--- Record ' + (i + 1) + ' ---\n' + chunk : null
   }).filter(Boolean)
-  if (!doSplit || allChunks.length <= splitSize) {
+  if (!doSplit || !splitSize || allChunks.length <= splitSize) {
     const header = '# SAP PM RAG Chunks\n# Source: ' + filename + '\n# Table: ' + tableType + '\n# Total: ' + allChunks.length + ' records\n# Generated: ' + new Date().toISOString() + '\n\n'
     return [{ text: header + allChunks.join('\n\n'), suffix: '' }]
   }
@@ -153,8 +153,8 @@ export function mergedOrderToChunk(orderKey, tableData) {
       if (v(r['G/I Cost']))     sections.push('    G/I Cost: '     + v(r['G/I Cost']) + ' THB')
       if (v(r['GR/GI Balance'])) sections.push('    Balance: '    + v(r['GR/GI Balance']) + ' THB')
       if (v(r['Labour Cost']))  sections.push('    Labour Cost: '  + v(r['Labour Cost']) + ' THB')
-      totalGR += parseFloat(String(r['G/R Cost'] || '').replace(/,/g,'')) || 0
-      totalGI += parseFloat(String(r['G/I Cost'] || '').replace(/,/g,'')) || 0
+      totalGR += parseFloat(String(r['G/R Cost'] ?? '').replace(/,/g,'')) || 0
+      totalGI += parseFloat(String(r['G/I Cost'] ?? '').replace(/,/g,'')) || 0
     })
     sections.push('  ── Total G/R Cost: ' + totalGR.toLocaleString('en', {minimumFractionDigits:2}) + ' THB')
     sections.push('  ── Total G/I Cost: ' + totalGI.toLocaleString('en', {minimumFractionDigits:2}) + ' THB')
@@ -163,7 +163,7 @@ export function mergedOrderToChunk(orderKey, tableData) {
 }
 
 export function splitMergedRagTexts(chunks, tableNames, orderCount, splitSize, doSplit) {
-  if (!doSplit || chunks.length <= splitSize) {
+  if (!doSplit || !splitSize || chunks.length <= splitSize) {
     const header = '# SAP PM Merged RAG Chunks\n# Tables: ' + tableNames + '\n# Total Orders: ' + orderCount + '\n# Generated: ' + new Date().toISOString() + '\n# Note: Each chunk = 1 Work Order\n\n'
     return [{ text: header + chunks.join('\n\n'), suffix: '' }]
   }
