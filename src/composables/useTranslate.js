@@ -1,5 +1,6 @@
 import { ref, reactive } from 'vue'
-import { dictTranslate, hasThai, resetFuzzyHits, _fuzzyHits } from '../utils/translateDict.js'
+import { dictTranslate, hasThai, resetFuzzyHits, getFuzzyHits } from '../utils/translateDict.js'
+// FIX #2: import getFuzzyHits() as a function instead of _fuzzyHits as a value snapshot
 
 export function useTranslate() {
   const translateFields = reactive(new Set([
@@ -7,7 +8,9 @@ export function useTranslate() {
     'ZPUCMN::Desc.',
     'Hours::Damage Text', 'Hours::Cause Text', 'Hours::Activity Text'
   ]))
-  const translateCache = reactive({})
+
+  // FIX #3: use ref({}) instead of reactive({}) for reliable Vue reactivity on dynamic keys
+  const translateCache = ref({})
 
   const translateStatus = reactive({
     show: false,
@@ -22,6 +25,11 @@ export function useTranslate() {
 
   let _failedTexts = []
   let _lastAllTableData = null
+  // FIX #4: guard flag to prevent concurrent retryFailed() calls
+  let _isRetrying = false
+
+  // FIX #5: store original field values so we can restore them if needed
+  const _originalValues = new WeakMap()
 
   function setStatus(text, sub, pct, retryAttempt = null, maxRetry = null) {
     translateStatus.show = true
@@ -85,6 +93,18 @@ export function useTranslate() {
     throw lastError
   }
 
+  // FIX #5: snapshot original values into WeakMap before mutating, so caller can restore if needed
+  function snapshotOriginals(allTableData) {
+    translateFields.forEach(key => {
+      const [tableType, fieldName] = key.split('::')
+      ;(allTableData[tableType] || []).forEach(rec => {
+        if (!_originalValues.has(rec)) _originalValues.set(rec, {})
+        const snap = _originalValues.get(rec)
+        if (!(fieldName in snap)) snap[fieldName] = rec[fieldName]
+      })
+    })
+  }
+
   function applyTranslations(allTableData) {
     let applied = 0
     translateFields.forEach(key => {
@@ -92,17 +112,32 @@ export function useTranslate() {
       ;(allTableData[tableType] || []).forEach(rec => {
         const val = rec[fieldName]
         if (!hasThai(val)) return
-        const tr = translateCache[String(val).trim()]
+        // FIX #3: access ref value with .value
+        const tr = translateCache.value[String(val).trim()]
         if (tr) { rec[fieldName] = tr; applied++ }
       })
     })
     return applied
   }
 
+  // FIX #5: restore original (pre-translation) field values
+  function restoreOriginals(allTableData) {
+    translateFields.forEach(key => {
+      const [tableType, fieldName] = key.split('::')
+      ;(allTableData[tableType] || []).forEach(rec => {
+        const snap = _originalValues.get(rec)
+        if (snap && fieldName in snap) rec[fieldName] = snap[fieldName]
+      })
+    })
+  }
+
   async function runTranslation(allTableData, endpoint, batchSize, maxRetries) {
     _lastAllTableData = allTableData
     _failedTexts = []
     setFailedBadge(0)
+
+    // FIX #5: snapshot originals before any mutation
+    snapshotOriginals(allTableData)
 
     const allTexts = {}
     translateFields.forEach(key => {
@@ -113,8 +148,18 @@ export function useTranslate() {
       })
     })
 
-    const uniqueTexts = Object.keys(allTexts).filter(t => !translateCache[t])
-    if (!uniqueTexts.length && !Object.keys(translateCache).length) return '✅ ไม่พบข้อความภาษาไทยในช่องที่เลือก'
+    // FIX #3: access ref with .value
+    const uniqueTexts = Object.keys(allTexts).filter(t => !translateCache.value[t])
+
+    // FIX #1: split the two conditions — no Thai found vs. all already cached
+    if (!Object.keys(allTexts).length) return '✅ ไม่พบข้อความภาษาไทยในช่องที่เลือก'
+    if (!uniqueTexts.length) {
+      // Everything already in cache — just apply and return
+      const applied = applyTranslations(allTableData)
+      const summary = '✅ แปลสำเร็จ (จาก cache) ' + applied + ' fields · Cache: ' + Object.keys(translateCache.value).length + ' texts'
+      setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', 100)
+      return summary
+    }
 
     setStatus('📖 Dictionary pass...', uniqueTexts.length + ' unique texts', 5)
 
@@ -124,7 +169,8 @@ export function useTranslate() {
     const needAI = []
     uniqueTexts.forEach(text => {
       const result = dictTranslate(text)
-      translateCache[text] = result
+      // FIX #3: write into ref value
+      translateCache.value[text] = result
       if (!hasThai(result)) dictHit++
       else needAI.push(text)
     })
@@ -145,7 +191,8 @@ export function useTranslate() {
             (attempt, max, delayMs) => setStatus('⏳ รอ ' + (delayMs/1000).toFixed(0) + 's แล้ว retry...', 'Batch '+(b+1)+'/'+totalBatches+' · '+batch.length+' texts', 10+Math.round((b/totalBatches)*85), attempt, max)
           )
           translateStatus.retryAttempt = null
-          batch.forEach((origText, i) => { if (results[i]) { translateCache[origText] = results[i]; aiDone++ } })
+          // FIX #3: write into ref value
+          batch.forEach((origText, i) => { if (results[i]) { translateCache.value[origText] = results[i]; aiDone++ } })
         } catch (e) {
           console.error('Batch ' + (b+1) + ' failed after retries:', e)
           errors++
@@ -160,18 +207,23 @@ export function useTranslate() {
     const applied = applyTranslations(allTableData)
     if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
 
-    const fuzzyHits = _fuzzyHits
+    // FIX #2: call getFuzzyHits() to get the live value, not the import-time snapshot
+    const fuzzyHits = getFuzzyHits()
     const summary = (errors ? '⚠️' : '✅') + ' แปลสำเร็จ ' + applied + ' fields' +
       ' · 📖 Dict: ' + dictHit +
       (fuzzyHits ? ' · 🔍 Fuzzy: ' + fuzzyHits : '') +
       (needAI.length ? ' · 🤖 AI: ' + aiDone : '') +
       (errors ? ' · ❌ ' + errors + ' batch error' : '')
-    setStatus(summary, 'Cache: ' + Object.keys(translateCache).length + ' texts', errors ? 80 : 100)
+    setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', errors ? 80 : 100)
     return summary
   }
 
   async function retryFailed(endpoint, batchSize, maxRetries) {
     if (!_failedTexts.length) return
+    // FIX #4: prevent concurrent retry runs from corrupting _failedTexts
+    if (_isRetrying) { console.warn('[Translate] retryFailed already in progress, skipping.'); return }
+    _isRetrying = true
+
     const retryTexts = _failedTexts.slice()
     _failedTexts = []
     setFailedBadge(0)
@@ -179,20 +231,26 @@ export function useTranslate() {
     const totalBatches = Math.ceil(retryTexts.length / batchSize)
     let retryDone = 0, retryErrors = 0
 
-    for (let b = 0; b < totalBatches; b++) {
-      const batch = retryTexts.slice(b * batchSize, (b + 1) * batchSize)
-      setStatus('🔄 Retrying ' + (retryDone + batch.length) + '/' + retryTexts.length, 'Retry batch ' + (b+1) + '/' + totalBatches, 10 + Math.round((b / totalBatches) * 85))
-      try {
-        const results = await callAPIWithRetry(batch, endpoint, maxRetries, 'Retry batch '+(b+1)+'/'+totalBatches,
-          (attempt, max, delayMs) => setStatus('⏳ รอ '+(delayMs/1000).toFixed(0)+'s...', 'Retry batch '+(b+1)+'/'+totalBatches, 10+Math.round((b/totalBatches)*85), attempt, max)
-        )
-        translateStatus.retryAttempt = null
-        batch.forEach((origText, i) => { if (results[i]) { translateCache[origText] = results[i]; retryDone++ } })
-      } catch (e) {
-        retryErrors++
-        batch.forEach(t => _failedTexts.push(t))
+    try {
+      for (let b = 0; b < totalBatches; b++) {
+        const batch = retryTexts.slice(b * batchSize, (b + 1) * batchSize)
+        setStatus('🔄 Retrying ' + (retryDone + batch.length) + '/' + retryTexts.length, 'Retry batch ' + (b+1) + '/' + totalBatches, 10 + Math.round((b / totalBatches) * 85))
+        try {
+          const results = await callAPIWithRetry(batch, endpoint, maxRetries, 'Retry batch '+(b+1)+'/'+totalBatches,
+            (attempt, max, delayMs) => setStatus('⏳ รอ '+(delayMs/1000).toFixed(0)+'s...', 'Retry batch '+(b+1)+'/'+totalBatches, 10+Math.round((b/totalBatches)*85), attempt, max)
+          )
+          translateStatus.retryAttempt = null
+          // FIX #3: write into ref value
+          batch.forEach((origText, i) => { if (results[i]) { translateCache.value[origText] = results[i]; retryDone++ } })
+        } catch (e) {
+          retryErrors++
+          batch.forEach(t => _failedTexts.push(t))
+        }
+        if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 300))
       }
-      if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 300))
+    } finally {
+      // FIX #4: always release the lock, even if something throws
+      _isRetrying = false
     }
 
     const applied = _lastAllTableData ? applyTranslations(_lastAllTableData) : 0
@@ -200,13 +258,19 @@ export function useTranslate() {
 
     const msg = (retryErrors ? '⚠️' : '✅') + ' Retry เสร็จ · สำเร็จ: ' + retryDone +
       (retryErrors ? ' · ยังเหลือ: ' + (retryTexts.length - retryDone) : '') + ' · Applied: ' + applied
-    setStatus(msg, 'Cache: ' + Object.keys(translateCache).length + ' texts', retryErrors ? 80 : 100)
+    setStatus(msg, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', retryErrors ? 80 : 100)
     return msg
   }
 
   return {
-    translateFields, translateCache, translateStatus,
-    toggleField, runTranslation, retryFailed, applyTranslations,
+    translateFields,
+    translateCache,       // now a ref — template access: translateCache.value[key]
+    translateStatus,
+    toggleField,
+    runTranslation,
+    retryFailed,
+    applyTranslations,
+    restoreOriginals,     // FIX #5: exposed so caller can undo translations if needed
     hasFailed: () => _failedTexts.length > 0
   }
 }
