@@ -1,9 +1,12 @@
 import { v } from './tableDetect.js'
 
+const TABLES = ['IW38', 'IW47', 'ZPM02', 'ZPUCMN', 'Hours']
+
 export function normalizeKey(raw) {
-  if (!raw) return null
+  if (raw === undefined || raw === null) return null
   const s = String(raw).trim()
-  if (/^\d+$/.test(s)) return String(parseInt(s, 10))
+  if (!s) return null
+  if (/^\d+$/.test(s)) return s.replace(/^0+/, '') || '0'
   return s
 }
 
@@ -31,30 +34,32 @@ export function getOrderKeyRaw(record, tableType) {
 
 export function buildOrderMap(allTableData) {
   const orderMap = {}
-  Object.entries(allTableData).forEach(([tableType, recs]) => {
-    recs.forEach(record => {
+  for (const [tableType, recs] of Object.entries(allTableData)) {
+    if (!Array.isArray(recs)) continue
+    for (const record of recs) {
+      if (!record) continue
       const key = getOrderKey(record, tableType)
-      if (!key) return
-      if (!orderMap[key]) orderMap[key] = { IW38: [], IW47: [], ZPM02: [], ZPUCMN: [], Hours: [] }
+      if (!key) continue
+      orderMap[key] ??= Object.fromEntries(TABLES.map(t => [t, []]))
       if (orderMap[key][tableType] !== undefined) orderMap[key][tableType].push(record)
-    })
-  })
+    }
+  }
   return orderMap
 }
 
 export function applyMergeFilter(orderMap, filterOn, minTableCount, requiredTables) {
   if (!filterOn) return orderMap
   const result = {}
-  Object.entries(orderMap).forEach(([key, td]) => {
-    const tableScore = (td.IW38.length > 0) + (td.IW47.length > 0) + (td.ZPM02.length > 0) + (td.ZPUCMN.length > 0) + (td.Hours.length > 0)
-    if (tableScore < minTableCount) return
-    const reqOk = Object.entries(requiredTables).every(([tbl, req]) => !req || (td[tbl] && td[tbl].length > 0))
-    if (!reqOk) return
+  for (const [key, td] of Object.entries(orderMap)) {
+    const tableScore = TABLES.reduce((n, t) => n + (td[t]?.length > 0), 0)
+    if (tableScore < minTableCount) continue
+    const reqOk = Object.entries(requiredTables || {}).every(([tbl, req]) => !req || (td[tbl] && td[tbl].length > 0))
+    if (!reqOk) continue
     result[key] = td
-  })
+  }
   return result
 }
 
 export function getTableScore(td) {
-  return (td.IW38.length > 0) + (td.IW47.length > 0) + (td.ZPM02.length > 0) + (td.ZPUCMN.length > 0) + (td.Hours.length > 0)
+  return TABLES.reduce((n, t) => n + (td[t]?.length > 0), 0)
 }
