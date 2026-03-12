@@ -372,14 +372,6 @@ function getDictByLen() {
   return _dictByLen
 }
 
-// kept for tokenize unknown-boundary scan
-let _dictKeys = null
-function getDictKeys() {
-  if (_dictKeys) return _dictKeys
-  _dictKeys = Object.keys(_dict).sort((a, b) => b.length - a.length)
-  return _dictKeys
-}
-
 const _fuzzyCache = new LRU(5000)
 export let _fuzzyHits = 0
 function fuzzyLookup(word, threshold = 0.80) {
@@ -427,7 +419,7 @@ export function tokenize(text) {
       result.push({ en: lastMatch.en, t: lastMatch.t, raw: chars.slice(i, lastEnd).join('') })
       i = lastEnd
     } else {
-      // Collect unknown chars until next trie match is found
+      // Unknown segment scan using Trie prefix lookahead (O(n))
       let end = i + 1
       while (end < chars.length && chars[end] !== ' ') {
         let n2 = trie, k2 = end, hit = false
@@ -520,7 +512,7 @@ const _measureMods   = new Set(['temperature','relative humidity','system pressu
 const _urgencyMods   = new Set(['severely','severe','urgent','slightly','minor','moderate','frequently','continuously','occasionally','intermittently','immediately'])
 const _hasSymptoms   = new Set(['no flow','not filling','zero pressure','no power supply','no sound','audio failure','loss of vacuum','low vacuum pressure'])
 const _hasRewrites   = {'no flow':'no water flow','not filling':'not filling','zero pressure':'no pressure','no power supply':'no power supply','audio failure':'no audio','loss of vacuum':'no vacuum','low vacuum pressure':'low vacuum'}
-const _nounSymptoms  = {'error':'is showing an error','media jam':'has a media jam','overload':'is showing an overload fault','short circuit':'has a short circuit','current leakage':'has a current leakage','system crash':'has crashed','QA failed':'failed QA inspection'}
+const _nounSymptoms  = {'error':'is showing an error','media jam':'has a media jam','overload':'is showing an overload fault','short circuit':'has a short circuit','current leakage':'has a current leakage','system crash':'has crashed','QA failed':'has failed QA inspection'}
 
 const _joinAnd = p => !p?.length ? '' : p.length===1 ? p[0] : p.length===2 ? p[0]+' and '+p[1] : p.slice(0,-1).join(', ')+', and '+p[p.length-1]
 const _cap     = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s
@@ -529,12 +521,44 @@ const _en      = toks => toks.map(x => x.en)
 const _locPrep = en => /room|restroom|canteen|cleanroom|storage|walkway|area/i.test(en) ? 'in the ' : /floor|ceiling|roof|window/i.test(en) ? 'on the ' : 'at the '
 const _locStr  = locs => locs.length ? locs.map(l => _locPrep(l.en)+l.en).join(', ') : ''
 
-function _symptomStr(syms, urgMods) {
-  const parts = _en(syms), urgSuffix = urgMods?.length ? ' ('+_en(urgMods).join(', ')+')' : ''
-  if (!parts.length) return ''
-  if (parts.length===1 && _nounSymptoms[parts[0]]) return _nounSymptoms[parts[0]]+urgSuffix
-  if (parts.every(p => _hasSymptoms.has(p))) return 'has '+_joinAnd(parts.map(p => _hasRewrites[p]||p))+urgSuffix
-  return 'is '+_joinAnd(parts)+urgSuffix
+function _symptomStr(syms, urgMods, isPlural = false) {
+  let parts = _en(syms);
+  let urgStrs = urgMods ? _en(urgMods) : [];
+
+  // Contextual Adverb Absorption
+  if (urgStrs.includes('severely') || urgStrs.includes('severe')) {
+    let absorbed = false;
+    parts = parts.map(p => {
+      if (p.includes('slowly')) { absorbed = true; return p.replace('slowly', 'very slowly'); }
+      if (p.includes('low ')) { absorbed = true; return p.replace('low ', 'very low '); }
+      if (p === 'damaged' || p === 'cracked' || p === 'worn out' || p === 'scratched') { absorbed = true; return 'severely ' + p; }
+      if (p === 'overheating') { absorbed = true; return 'overheating severely'; }
+      return p;
+    });
+    if (absorbed) {
+      urgStrs = urgStrs.filter(m => m !== 'severely' && m !== 'severe');
+    }
+  }
+
+  const urgSuffix = urgStrs.length ? ' (' + urgStrs.join(', ') + ')' : '';
+  const beVerb = isPlural ? 'are' : 'is';
+  const haveVerb = isPlural ? 'have' : 'has';
+
+  if (!parts.length) return urgSuffix.trim();
+
+  // Handle Noun Symptoms with proper verb assignment
+  if (parts.length === 1 && _nounSymptoms[parts[0]]) {
+    let phrase = _nounSymptoms[parts[0]];
+    if (phrase.startsWith('is ')) phrase = beVerb + ' ' + phrase.slice(3);
+    else if (phrase.startsWith('has ')) phrase = haveVerb + ' ' + phrase.slice(4);
+    return phrase + urgSuffix;
+  }
+
+  // Handle Has Symptoms
+  if (parts.every(p => _hasSymptoms.has(p))) return haveVerb + ' ' + _joinAnd(parts.map(p => _hasRewrites[p]||p)) + urgSuffix;
+  
+  // Default Be Verb
+  return beVerb + ' ' + _joinAnd(parts) + urgSuffix;
 }
 
 export function assemble(tokens) {
@@ -543,19 +567,27 @@ export function assemble(tokens) {
   let comps=_ofType(tokens,'C'),syms=_ofType(tokens,'S'),acts=_ofType(tokens,'A'),locs=_ofType(tokens,'L'),mods=_ofType(tokens,'M'),unks=_ofType(tokens,'U')
   const measMods=mods.filter(m=>_measureMods.has(m.en)), urgMods=mods.filter(m=>_urgencyMods.has(m.en))
   if (comps.length && comps.some(c=>_nonFluidComps.has(c.en))) syms=syms.filter(s=>!_fluidSymptoms.has(s.en))
+  
   const locPart=_locStr(locs), hasUnk=unks.length>0
+  const isPlural = comps.length > 1 // Plural detection for components
+
   if (acts.length&&tokens[0].t==='A') {
     let s=_joinAnd(_en(acts)); if(comps.length) s+=' the '+_joinAnd(_en(comps)); if(locPart) s+=' '+locPart; if(syms.length) s+=' — symptom: '+_joinAnd(_en(syms)); if(urgMods.length) s+=' ('+_en(urgMods).join(', ')+')'; if(hasUnk) s+=' '+_en(unks).join(' '); return _cap(s)+'.'
   }
   if (comps.length&&tokens[0].t==='C') {
-    let d='The '+_joinAnd(_en(comps)); if(locPart) d+=' '+locPart; if(syms.length) d+=' '+_symptomStr(syms,urgMods); else if(urgMods.length) d+=' ('+_en(urgMods).join(', ')+')'; if(hasUnk) d+=' '+_en(unks).join(' '); return _cap(d)+'.'
+    let d='The '+_joinAnd(_en(comps)); if(locPart) d+=' '+locPart; 
+    if(syms.length) d+=' '+_symptomStr(syms,urgMods,isPlural); 
+    else if(urgMods.length) d+=' ('+_en(urgMods).join(', ')+')'; 
+    if(hasUnk) d+=' '+_en(unks).join(' '); return _cap(d)+'.'
   }
   if (measMods.length&&tokens[0].t==='M') {
-    let ms=_en(measMods).join(' '); if(comps.length) ms+=' reading of the '+_joinAnd(_en(comps)); let md=_cap(ms); if(locPart) md+=' '+locPart; if(syms.length) md+=' is '+_joinAnd(_en(syms)); if(urgMods.length) md+=' ('+_en(urgMods).join(', ')+')'; if(hasUnk) md+=' '+_en(unks).join(' '); return md+'.'
+    let ms=_en(measMods).join(' '); if(comps.length) ms+=' reading of the '+_joinAnd(_en(comps)); let md=_cap(ms); if(locPart) md+=' '+locPart; 
+    if(syms.length) md+= (isPlural ? ' are ' : ' is ') + _joinAnd(_en(syms)); 
+    if(urgMods.length) md+=' ('+_en(urgMods).join(', ')+')'; if(hasUnk) md+=' '+_en(unks).join(' '); return md+'.'
   }
   if (urgMods.length&&tokens[0].t==='M'&&!measMods.length) {
     const urgLabel=_cap(_en(urgMods).join(', ')), rest=[]
-    if(comps.length){let s='The '+_joinAnd(_en(comps)); if(locPart) s+=' '+locPart; if(syms.length) s+=' '+_symptomStr(syms,[]); rest.push(s)} else if(syms.length) rest.push(_joinAnd(_en(syms)))
+    if(comps.length){let s='The '+_joinAnd(_en(comps)); if(locPart) s+=' '+locPart; if(syms.length) s+=' '+_symptomStr(syms,[],isPlural); rest.push(s)} else if(syms.length) rest.push(_joinAnd(_en(syms)))
     if(hasUnk) rest.push(_en(unks).join(' ')); return urgLabel+(rest.length?' — '+rest.join(' '):'')+'.';
   }
   if (syms.length&&!comps.length&&!acts.length) {
