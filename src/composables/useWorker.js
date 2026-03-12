@@ -31,31 +31,72 @@ export function useWorker() {
         }
       }
       xlsxWorker.onerror = err => {
-        console.error('Worker error:', err); workerReady = false; setStatus('error', '⚠️ Fallback Mode')
+        console.error('Worker error:', err)
+        workerReady = false
+        setStatus('error', '⚠️ Fallback Mode')
+
+        // Reject all pending callbacks
         Object.values(workerCallbacks).forEach(cb => cb.reject(new Error('Worker crashed')))
         Object.keys(workerCallbacks).forEach(k => delete workerCallbacks[k])
+
+        // FIX 1: Auto-reinitialize worker after crash so it can recover
+        xlsxWorker = null
+        setTimeout(() => initWorker(), 500)
       }
-    } catch (e) { setStatus('error', '⚠️ No Worker'); console.warn('Web Worker not supported:', e) }
+    } catch (e) {
+      setStatus('error', '⚠️ No Worker')
+      console.warn('Web Worker not supported:', e)
+    }
   }
 
   async function readExcel(file, autoHeader) {
+    // Fallback: main thread
     if (!workerReady || !xlsxWorker) {
-      // Fallback: main thread
+      // FIX 2: Show busy/ready status in fallback path too
+      setStatus('busy', '⚙️ Parsing...')
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = e => { try { resolve(parseExcelBuffer(e.target.result, autoHeader)) } catch(err) { reject(err) } }
-        reader.onerror = () => reject(new Error('File read error'))
+        reader.onload = e => {
+          try {
+            const result = parseExcelBuffer(e.target.result, autoHeader)
+            setStatus('ready', '⚡ Worker Ready')
+            resolve(result)
+          } catch (err) {
+            setStatus('error', '⚠️ Fallback Mode')
+            reject(err)
+          }
+        }
+        reader.onerror = () => {
+          setStatus('error', '⚠️ Fallback Mode')
+          reject(new Error('File read error'))
+        }
         reader.readAsArrayBuffer(file)
       })
     }
+
     setStatus('busy', '⚙️ Parsing...')
     const id = ++workerIdCounter
-    return new Promise(async (resolve, reject) => {
+
+    // FIX 3: Extract grid outside the Promise to properly handle errors
+    // and reset status if extractCellGrid fails
+    let grid
+    try {
+      grid = await extractCellGrid(file)
+    } catch (err) {
+      setStatus('ready', '⚡ Worker Ready')
+      throw err
+    }
+
+    // FIX 4: Don't use async executor in new Promise (anti-pattern that swallows errors)
+    return new Promise((resolve, reject) => {
       workerCallbacks[id] = { resolve, reject }
       try {
-        const grid = await extractCellGrid(file)
         xlsxWorker.postMessage({ cmd: 'process', id, grid, autoHeader })
-      } catch (err) { delete workerCallbacks[id]; reject(err) }
+      } catch (err) {
+        delete workerCallbacks[id]
+        setStatus('ready', '⚡ Worker Ready')
+        reject(err)
+      }
     })
   }
 
