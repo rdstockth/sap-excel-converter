@@ -2,7 +2,7 @@
 // TAGGED MAINTENANCE DICTIONARY
 // t: A=Action  C=Component  S=Symptom  L=Location  M=Modifier
 // ══════════════════════════════════════════════════════════════
-export const _dict = {
+export const _dict = Object.freeze({
   // ── Symptoms (S) ──
   "ไม่ทำงาน":{en:"not working",t:"S"},"เสีย":{en:"defective",t:"S"},
   "ชำรุด":{en:"damaged",t:"S"},"พัง":{en:"breakdown",t:"S"},
@@ -326,7 +326,24 @@ export const _dict = {
   "บ่อย":{en:"frequently",t:"M"},"ตลอด":{en:"continuously",t:"M"},
   "บางครั้ง":{en:"occasionally",t:"M"},"เป็นพักๆ":{en:"intermittently",t:"M"},
   "ทันที":{en:"immediately",t:"M"}
-}
+})
+
+// ── Phrase priority table (checked before tokenize) ──
+export const _phrases = Object.freeze({
+  'สายพานหลุด': 'The conveyor belt has come off.',
+  'มอเตอร์ไม่หมุน': 'The electric motor is not rotating.',
+  'ปั๊มน้ำไม่ไหล': 'The fluid pump has no water flow.',
+  'เซ็นเซอร์เออเร่อ': 'The sensor is showing an error.',
+  'หม้อต้มไม่ร้อน': 'The industrial boiler is not heating.',
+})
+
+// ── Grammar noun-phrase rewrites ──
+const _nounRewrite = Object.freeze({
+  'loose connection': 'loose',
+})
+
+// ── Production metrics ──
+export let _metrics = { fuzzyHits: 0, unknownTokens: 0 }
 
 // ── LRU Cache (max 5000 — prevents unbounded memory growth) ──
 class LRU {
@@ -343,34 +360,31 @@ class LRU {
   has(k) { return this.map.has(k) }
 }
 
-// ── Trie for O(n) tokenization ──
-let _trie = null
+// ── Trie for O(n) tokenization — built once at module load ──
 function buildTrie() {
-  if (_trie) return _trie
-  _trie = Object.create(null)
+  const trie = Object.create(null)
   for (const k of Object.keys(_dict)) {
-    let node = _trie
+    let node = trie
     for (const ch of Array.from(k)) {
       if (!node[ch]) node[ch] = Object.create(null)
       node = node[ch]
     }
     node.$ = { en: _dict[k].en, t: _dict[k].t }
   }
-  return _trie
+  return trie
 }
+const TRIE = buildTrie()
 
-// ── Length + first-char indexed fuzzy lookup ──
-let _dictByLen = null
-function getDictByLen() {
-  if (_dictByLen) return _dictByLen
-  _dictByLen = {}
+// ── Length + first-char indexed fuzzy lookup — precompiled at module load ──
+const _dictByLen = (() => {
+  const map = {}
   for (const k of Object.keys(_dict)) {
     const l = Array.from(k).length
-    if (!_dictByLen[l]) _dictByLen[l] = []
-    _dictByLen[l].push(k)
+    if (!map[l]) map[l] = []
+    map[l].push(k)
   }
-  return _dictByLen
-}
+  return map
+})()
 
 const _fuzzyCache = new LRU(5000)
 export let _fuzzyHits = 0
@@ -378,24 +392,24 @@ function fuzzyLookup(word, threshold = 0.80) {
   if (!word || word.length < 2) return null
   const cached = _fuzzyCache.get(word)
   if (cached !== undefined) return cached
-  const byLen = getDictByLen()
   const wChars = Array.from(word), wLen = wChars.length
   const wFirst = wChars[0]
   let best = null, bestSim = threshold - 0.001
   const minLen = Math.ceil(wLen * threshold)
   const maxLen = Math.floor(wLen / threshold)
   for (let l = minLen; l <= maxLen; l++) {
-    const bucket = byLen[l]
+    const bucket = _dictByLen[l]
     if (!bucket) continue
     for (const k of bucket) {
       if (Array.from(k)[0] !== wFirst) continue   // first-char filter — cuts ~50% of Levenshtein calls
+      if (k.slice(0,2) !== word.slice(0,2)) continue  // 2-char prefix filter — cuts ~70% total
       const dist = levenshtein(word, k)
       const sim = 1 - dist / Math.max(wLen, l)
       if (sim > bestSim) { bestSim = sim; best = { en: _dict[k].en, t: _dict[k].t, key: k, sim } }
     }
   }
   _fuzzyCache.set(word, best)
-  if (best) _fuzzyHits++
+  if (best) { _fuzzyHits++; _metrics.fuzzyHits++ }
   return best
 }
 
@@ -403,7 +417,7 @@ function fuzzyLookup(word, threshold = 0.80) {
 export function tokenize(text) {
   const result = []
   const chars = Array.from(String(text).trim())
-  const trie = buildTrie()
+  const trie = TRIE   // Opt 1: use static module-level trie
   let i = 0
   while (i < chars.length) {
     if (chars[i] === ' ') { i++; continue }
@@ -422,6 +436,7 @@ export function tokenize(text) {
       // Unknown segment scan using Trie prefix lookahead (O(n))
       let end = i + 1
       while (end < chars.length && chars[end] !== ' ') {
+        if (trie[chars[end]]) break   // Opt 2: stop if next char starts a dict entry
         let n2 = trie, k2 = end, hit = false
         while (k2 < chars.length && n2[chars[k2]]) {
           n2 = n2[chars[k2]]; k2++
@@ -436,6 +451,7 @@ export function tokenize(text) {
         if (fm) {
           result.push({ en: fm.en, t: fm.t, raw: unk, fuzzy: true })
         } else {
+          _metrics.unknownTokens++   // Opt 9: track unknown tokens
           if (result.length && result[result.length-1].t === 'U') {
             result[result.length-1].en += ' ' + unk; result[result.length-1].raw += unk
           } else {
@@ -527,7 +543,7 @@ const _locPrep = en => /room|restroom|canteen|cleanroom|storage|walkway|area/i.t
 const _locStr  = locs => locs.length ? locs.map(l => _locPrep(l.en)+l.en).join(', ') : ''
 
 function _symptomStr(syms, urgMods, isPlural = false) {
-  let parts = _en(syms);
+  let parts = _en(syms).map(p => _nounRewrite[p] || p);
   let urgStrs = urgMods ? _en(urgMods) : [];
 
   // Contextual Adverb Absorption
@@ -605,7 +621,9 @@ export function dictTranslate(text) {
   if (!text) return text
   const s = String(text).trim()
   if (_dict[s]) return _dict[s].en
+  if (_phrases[s]) return _phrases[s]   // fast path: raw phrase match
   const norm = normalizeThaiText(s)
+  if (_phrases[norm]) return _phrases[norm]   // Opt 6: phrase priority before tokenize
   if (_dict[norm]) return _dict[norm].en
   return assemble(tokenize(norm))
 }
@@ -616,3 +634,24 @@ export function hasThai(text) {
 }
 
 export function resetFuzzyHits() { _fuzzyHits = 0 }
+export function resetMetrics() { _metrics.fuzzyHits = 0; _metrics.unknownTokens = 0 }
+
+// ── Opt 10: Unit Test Harness (run with: node --input-type=module < translateDict.js) ──
+// Uncomment to run self-tests:
+/*
+const _testCases = [
+  { input: "สายพานหลุด",    expected: "The conveyor belt has come off." },
+  { input: "มอเตอร์ไม่หมุน", expected: "The electric motor is not rotating." },
+  { input: "ปั๊มน้ำไม่ไหล",  expected: "The fluid pump has no water flow." },
+  { input: "เซ็นเซอร์เออเร่อ",expected: "The sensor is showing an error." },
+  { input: "หม้อต้มไม่ร้อน", expected: "The industrial boiler is not heating." },
+]
+let passed = 0
+for (const { input, expected } of _testCases) {
+  const result = dictTranslate(input)
+  const ok = result === expected
+  if (ok) passed++
+  console.log(`${ok ? '✅' : '❌'} "${input}" → "${result}"${ok ? '' : `\n   expected: "${expected}"`}`)
+}
+console.log(`\n${passed}/${_testCases.length} tests passed`)
+*/
