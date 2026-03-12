@@ -203,7 +203,7 @@ export const _dict = {
   "เครื่องล้าง":{en:"washing machine",t:"C"},"เครื่องพิมพ์":{en:"printing machine",t:"C"},
   "เครื่องอบ":{en:"drying machine",t:"C"},
   // ── Optical Manufacturing Components ──
-  "เลนส์":{en:"optical lens",t:"C"},"บล็อกเลนส์":{en:"lens block",t:"C"},
+  "บล็อกเลนส์":{en:"lens block",t:"C"},
   "แม่พิมพ์เลนส์":{en:"lens mold",t:"C"},"แท่นขัด":{en:"polishing plate",t:"C"},
   "จานขัด":{en:"polishing plate",t:"C"},"จานเจียร":{en:"grinding plate",t:"C"},
   "หัวจับเลนส์":{en:"lens holder",t:"C"},"หัวบล็อก":{en:"blocking chuck",t:"C"},
@@ -328,7 +328,135 @@ export const _dict = {
   "ทันที":{en:"immediately",t:"M"}
 }
 
-// ── Thai Normalizer rules ──
+// ── LRU Cache (max 5000 — prevents unbounded memory growth) ──
+class LRU {
+  constructor(max) { this.max = max; this.map = new Map() }
+  get(k) {
+    if (!this.map.has(k)) return undefined
+    const v = this.map.get(k); this.map.delete(k); this.map.set(k, v); return v
+  }
+  set(k, v) {
+    if (this.map.has(k)) this.map.delete(k)
+    else if (this.map.size >= this.max) this.map.delete(this.map.keys().next().value)
+    this.map.set(k, v)
+  }
+  has(k) { return this.map.has(k) }
+}
+
+// ── Trie for O(n) tokenization ──
+let _trie = null
+function buildTrie() {
+  if (_trie) return _trie
+  _trie = Object.create(null)
+  for (const k of Object.keys(_dict)) {
+    let node = _trie
+    for (const ch of Array.from(k)) {
+      if (!node[ch]) node[ch] = Object.create(null)
+      node = node[ch]
+    }
+    node.$ = { en: _dict[k].en, t: _dict[k].t }
+  }
+  return _trie
+}
+
+// ── Length + first-char indexed fuzzy lookup ──
+let _dictByLen = null
+function getDictByLen() {
+  if (_dictByLen) return _dictByLen
+  _dictByLen = {}
+  for (const k of Object.keys(_dict)) {
+    const l = Array.from(k).length
+    if (!_dictByLen[l]) _dictByLen[l] = []
+    _dictByLen[l].push(k)
+  }
+  return _dictByLen
+}
+
+// kept for tokenize unknown-boundary scan
+let _dictKeys = null
+function getDictKeys() {
+  if (_dictKeys) return _dictKeys
+  _dictKeys = Object.keys(_dict).sort((a, b) => b.length - a.length)
+  return _dictKeys
+}
+
+const _fuzzyCache = new LRU(5000)
+export let _fuzzyHits = 0
+function fuzzyLookup(word, threshold = 0.80) {
+  if (!word || word.length < 2) return null
+  const cached = _fuzzyCache.get(word)
+  if (cached !== undefined) return cached
+  const byLen = getDictByLen()
+  const wChars = Array.from(word), wLen = wChars.length
+  const wFirst = wChars[0]
+  let best = null, bestSim = threshold - 0.001
+  const minLen = Math.ceil(wLen * threshold)
+  const maxLen = Math.floor(wLen / threshold)
+  for (let l = minLen; l <= maxLen; l++) {
+    const bucket = byLen[l]
+    if (!bucket) continue
+    for (const k of bucket) {
+      if (Array.from(k)[0] !== wFirst) continue   // first-char filter — cuts ~50% of Levenshtein calls
+      const dist = levenshtein(word, k)
+      const sim = 1 - dist / Math.max(wLen, l)
+      if (sim > bestSim) { bestSim = sim; best = { en: _dict[k].en, t: _dict[k].t, key: k, sim } }
+    }
+  }
+  _fuzzyCache.set(word, best)
+  if (best) _fuzzyHits++
+  return best
+}
+
+// ── Trie-based tokenizer — O(n) instead of O(n * dict_size) ──
+export function tokenize(text) {
+  const result = []
+  const chars = Array.from(String(text).trim())
+  const trie = buildTrie()
+  let i = 0
+  while (i < chars.length) {
+    if (chars[i] === ' ') { i++; continue }
+
+    // Walk trie for longest match starting at i
+    let node = trie, lastMatch = null, lastEnd = i, j = i
+    while (j < chars.length && node[chars[j]]) {
+      node = node[chars[j]]; j++
+      if (node.$) { lastMatch = node.$; lastEnd = j }
+    }
+
+    if (lastMatch) {
+      result.push({ en: lastMatch.en, t: lastMatch.t, raw: chars.slice(i, lastEnd).join('') })
+      i = lastEnd
+    } else {
+      // Collect unknown chars until next trie match is found
+      let end = i + 1
+      while (end < chars.length && chars[end] !== ' ') {
+        let n2 = trie, k2 = end, hit = false
+        while (k2 < chars.length && n2[chars[k2]]) {
+          n2 = n2[chars[k2]]; k2++
+          if (n2.$) { hit = true; break }
+        }
+        if (hit) break
+        end++
+      }
+      const unk = chars.slice(i, end).join('').trim()
+      if (unk) {
+        const fm = fuzzyLookup(unk)
+        if (fm) {
+          result.push({ en: fm.en, t: fm.t, raw: unk, fuzzy: true })
+        } else {
+          if (result.length && result[result.length-1].t === 'U') {
+            result[result.length-1].en += ' ' + unk; result[result.length-1].raw += unk
+          } else {
+            result.push({ en: unk, t: 'U', raw: unk })
+          }
+        }
+      }
+      i = end
+    }
+  }
+  return result
+}
+
 const _normRules = [
   [/เปลื่ยน|เปลียน|เปรี่ยน|เปลื่ยน/g, 'เปลี่ยน'],
   [/ช่อม/g, 'ซ่อม'], [/ย้าน/g, 'ย้าย'], [/ตรวจเช็ค/g, 'ตรวจสอบ'],
@@ -337,7 +465,7 @@ const _normRules = [
   [/ปลิ้นเตอร์/g, 'ปริ้นเตอร์'], [/ตระแกรง/g, 'ตะแกรง'],
   [/โฟเลท/g, 'โฟลมิเตอร์'], [/สเลนเดอร์/g, 'กระบอกลม'],
   [/ฟุตสวิตท์|ฟุ๊ตสวิทช์/g, 'ฟุทสวิทส์'],
-  [/น๊อค/g, 'น็อต'], [/น๊อต/g, 'น็อต'],
+  [/น๊อต/g, 'น็อต'],
   [/เซนเซอร์/g, 'เซ็นเซอร์'],
   [/มอเตอ(?=[^ร]|$)/g, 'มอเตอร์'],
   [/ปั้ม/g, 'ปั๊ม'],
@@ -357,7 +485,7 @@ const _normRules = [
   [/([\u0E00-\u0E7F])\1{2,}/g, '$1$1'],
   [/\s+/g, ' '],
 ]
-const _normCache = {}
+const _normCache = new LRU(5000)
 export function normalizeThaiText(text) {
   if (!text) return text
   const s = String(text).trim()
@@ -383,84 +511,6 @@ function levenshtein(a, b) {
     ;[prev, curr] = [curr, prev]
   }
   return prev[n]
-}
-
-let _dictKeys = null
-let _dictByLen = null
-
-function getDictKeys() {
-  if (_dictKeys) return _dictKeys
-  _dictKeys = Object.keys(_dict).sort((a, b) => b.length - a.length)
-  return _dictKeys
-}
-
-function getDictByLen() {
-  if (_dictByLen) return _dictByLen
-  _dictByLen = {}
-  for (const k of Object.keys(_dict)) {
-    const l = Array.from(k).length
-    if (!_dictByLen[l]) _dictByLen[l] = []
-    _dictByLen[l].push(k)
-  }
-  return _dictByLen
-}
-
-const _fuzzyCache = {}
-export let _fuzzyHits = 0
-function fuzzyLookup(word, threshold = 0.80) {
-  if (!word || word.length < 2) return null
-  if (_fuzzyCache[word] !== undefined) return _fuzzyCache[word]
-  const byLen = getDictByLen()
-  const wChars = Array.from(word), wLen = wChars.length
-  let best = null, bestSim = threshold - 0.001
-  // Only check buckets whose length ratio passes threshold — skips ~60-70% of keys
-  const minLen = Math.ceil(wLen * threshold)
-  const maxLen = Math.floor(wLen / threshold)
-  for (let l = minLen; l <= maxLen; l++) {
-    const bucket = byLen[l]
-    if (!bucket) continue
-    for (const k of bucket) {
-      const dist = levenshtein(word, k)
-      const sim = 1 - dist / Math.max(wLen, l)
-      if (sim > bestSim) { bestSim = sim; best = { en: _dict[k].en, t: _dict[k].t, key: k, sim } }
-    }
-  }
-  _fuzzyCache[word] = best
-  if (best) _fuzzyHits++
-  return best
-}
-
-export function tokenize(text) {
-  const result = [], keys = getDictKeys()
-  let s = String(text).trim()
-  while (s.length) {
-    const sp = s.match(/^\s+/)
-    if (sp) { s = s.slice(sp[0].length); continue }
-    let found = false
-    for (const k of keys) {
-      if (s.slice(0, k.length) === k) {
-        result.push({ en: _dict[k].en, t: _dict[k].t, raw: k }); s = s.slice(k.length); found = true; break
-      }
-    }
-    if (!found) {
-      let end = 1
-      while (end < s.length) {
-        if (keys.some(k => s.slice(end, end + k.length) === k)) break
-        end++
-      }
-      const unk = s.slice(0, end).trim()
-      if (unk) {
-        const fm = fuzzyLookup(unk)
-        if (fm) { result.push({ en: fm.en, t: fm.t, raw: unk, fuzzy: true }) }
-        else {
-          if (result.length && result[result.length-1].t === 'U') { result[result.length-1].en += ' '+unk; result[result.length-1].raw += unk }
-          else result.push({ en: unk, t: 'U', raw: unk })
-        }
-      }
-      s = s.slice(end)
-    }
-  }
-  return result
 }
 
 // Grammar assembler
