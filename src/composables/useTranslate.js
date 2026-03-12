@@ -1,6 +1,5 @@
 import { ref, reactive } from 'vue'
-import { dictTranslate, hasThai, resetFuzzyHits, getFuzzyHits } from '../utils/translateDict.js'
-// FIX #2: import getFuzzyHits() as a function instead of _fuzzyHits as a value snapshot
+import { dictTranslate, hasThai, resetFuzzyHits, _fuzzyHits } from '../utils/translateDict.js'
 
 export function useTranslate() {
   const translateFields = reactive(new Set([
@@ -207,8 +206,8 @@ export function useTranslate() {
     const applied = applyTranslations(allTableData)
     if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
 
-    // FIX #2: call getFuzzyHits() to get the live value, not the import-time snapshot
-    const fuzzyHits = getFuzzyHits()
+    // _fuzzyHits is a live ES module binding — reads the current value correctly
+    const fuzzyHits = _fuzzyHits
     const summary = (errors ? '⚠️' : '✅') + ' แปลสำเร็จ ' + applied + ' fields' +
       ' · 📖 Dict: ' + dictHit +
       (fuzzyHits ? ' · 🔍 Fuzzy: ' + fuzzyHits : '') +
