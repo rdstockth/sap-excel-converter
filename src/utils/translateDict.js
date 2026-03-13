@@ -58,7 +58,7 @@ export const _dict = Object.freeze({
   "ไม่ตรงที่ตั้งไว้":{en:"setpoint deviation",t:"S"},"เกินค่ากำหนด":{en:"over limit",t:"S"},
   "ต่ำ":{en:"low level",t:"S"},"ต่ำกว่าค่ากำหนด":{en:"below setpoint",t:"S"},
   "สูง":{en:"high level",t:"S"},"อุณหภูมิไม่ขึ้น":{en:"temperature failing to rise",t:"S"},
-  "ไม่ลง":{en:"temperature failing to drop",t:"S"},"ไม่คงที่":{en:"unstable reading",t:"S"},
+  "ไม่คงที่":{en:"unstable reading",t:"S"},
   "ขึ้น ลง":{en:"fluctuating",t:"S"},"ตัวเลขเบิ้ล":{en:"ghosting",t:"S"},
   "ไม่ผ่าน":{en:"QA failed",t:"S"},"สีไม่ออก":{en:"ink starvation",t:"S"},
   "สีแตก":{en:"ink dispersion issue",t:"S"},"สีหยด":{en:"ink dripping",t:"S"},
@@ -520,7 +520,42 @@ export const _dict = Object.freeze({
   "แสงจ้าไป":{en:"overexposure",t:"S",sys:"Vision Inspection"},"แสงสะท้อน":{en:"glare reflection issue",t:"S",sys:"Vision Inspection"},
   "ดีดงานทิ้งผิด":{en:"false reject",t:"S",sys:"Vision Inspection"},"ปล่อยงานเสียผ่าน":{en:"false acceptance",t:"S",sys:"Vision Inspection"},
   "คาลิเบรทกล้อง":{en:"calibrate camera",t:"A",sys:"Vision Inspection"},"สอนภาพใหม่":{en:"re-train vision model",t:"A",sys:"Vision Inspection"},
-  "ปรับแสงกล้อง":{en:"adjust illumination",t:"A",sys:"Vision Inspection"}
+  "ปรับแสงกล้อง":{en:"adjust illumination",t:"A",sys:"Vision Inspection"},
+
+  // ── Symptoms (S) เพิ่มเติมจากหน้างาน ──
+  "ไม่ได้ระดับ":{en:"off-level",t:"S"},"เกลียวหวาน":{en:"stripped thread",t:"S"},
+  "บิด":{en:"twisted",t:"S"},"หมด":{en:"depleted",t:"S"},
+  "ร้องไม่หยุด":{en:"continuous alarm",t:"S"},"ขึ้นช้า":{en:"rising slowly",t:"S"},
+  "ลงช้า":{en:"dropping slowly",t:"S"},"สีจาง":{en:"faded color",t:"S"},
+  "ยับย่น":{en:"wrinkled",t:"S"},"ยับ":{en:"wrinkled",t:"S"},
+  "ไม่ตัด":{en:"not stopping",t:"S"},"ติดผนึก":{en:"frost buildup",t:"S"},
+  "ไม่รีเซ็ต":{en:"not resetting",t:"S"},"ผิดปกติ":{en:"abnormal",t:"S"},
+  "อ่านข้างเดียว":{en:"single-side scan only",t:"S"},"ไม่ขึ้น":{en:"not rising",t:"S"},
+  "ไม่ลง":{en:"not descending",t:"S"},"เดินไม่หยุด":{en:"running continuously",t:"S"},
+  "หยุดบ่อย":{en:"frequent stop",t:"S"},"งานร่วง":{en:"workpiece dropped",t:"S"},
+  "เลนส์ร่วง":{en:"lens dropped",t:"S"},"งานไม่เข้า":{en:"workpiece not feeding",t:"S"},
+  "ยิงงานไม่ได้":{en:"job scanning failure",t:"S"},
+
+  // ── Components (C) เพิ่มเติมจากหน้างาน ──
+  "อ่างล้างตา":{en:"eyewash station",t:"C"},"อ่างล้างมือ":{en:"washbasin",t:"C"},
+  "โถฉี่":{en:"urinal",t:"C"},"ชักโครก":{en:"toilet bowl",t:"C"},
+  "ใบจ๊อบ":{en:"job ticket",t:"C"},"เครื่องเคลือบฟิล์ม":{en:"film coating machine",t:"C"},
+  "เครื่องดูดฝุ่น":{en:"vacuum cleaner",t:"C"},"เครื่องซักผ้า":{en:"washing machine",t:"C"},
+  "ตู้แช่":{en:"freezer",t:"C"},"โช๊คเก้าอี้":{en:"gas lift cylinder",t:"C"},
+  "เก้าอี้":{en:"chair",t:"C"},"โต๊ะ":{en:"work table",t:"C"},
+  "ชั้นวางของ":{en:"storage shelf",t:"C"},"ลิ้นชัก":{en:"drawer",t:"C"},
+  "บานพับ":{en:"hinge",t:"C"},"กลอนประตู":{en:"door latch",t:"C"},
+  "มือจับประตู":{en:"door handle",t:"C"},"หูจับประตู":{en:"door handle",t:"C"},
+  "หัววัดงาน":{en:"measuring probe",t:"C"},"เครื่องเจียร์":{en:"grinding machine",t:"C"},
+  "แผ่นรอง":{en:"support plate",t:"C"},"รถแยกงาน":{en:"sorting cart",t:"C"},
+  "รถเข็น":{en:"push cart",t:"C"},"อ่างล้างเลนส์":{en:"lens washing tank",t:"C"},
+  "หัว wiping":{en:"wiping head",t:"C"},"หัว polishing":{en:"polishing head",t:"C"},
+  "เครื่อง padprinting":{en:"pad printing machine",t:"C"},"เครื่องเคลือบ":{en:"coating machine",t:"C"},
+  "เครื่อง casting":{en:"casting machine",t:"C"},
+
+  // ── Facility Issues (S) ──
+  "น้ำท่วม":{en:"flooded floor",t:"S"},"ฝ้าร่วง":{en:"ceiling panel fallen",t:"S"},
+  "หลังคารั่ว":{en:"roof leakage",t:"S"},"ท่อแตก":{en:"pipe burst",t:"S"}
 })
 
 // ── Phrase priority table (checked before tokenize) ──
@@ -545,6 +580,12 @@ export const _phrases = Object.freeze({
   'ลิมิตสวิทช์ไม่ทำงาน': 'The limit switch is not actuating.',
   'แบริ่งร้อน': 'The bearing is overheating.',
   'คัปปลิ้งหัก': 'The shaft coupling is broken.',
+  'สายพานขาด': 'The conveyor belt is broken.',
+  'สายพานหย่อน': 'The conveyor belt tension is loose.',
+  'ลมรั่ว': 'Compressed air is leaking.',
+  'น้ำยาไม่ไหล': 'Chemical solution is not flowing.',
+  'แอร์ไม่เย็น': 'The air conditioning unit is not cooling.',
+  'หลอดไฟขาด': 'The lamp is burnt out.'
 })
 
 // ── Grammar noun-phrase rewrites ──
@@ -674,6 +715,27 @@ export function tokenize(text) {
 }
 
 const _normRules = [
+  // ===== ดักคำพิมพ์ผิดที่เจอบ่อยจาก Log หน้างาน =====
+  [/อุณภูมิ|อุณภุมิ/g, 'อุณหภูมิ'],
+  [/ไมได้|ใมได้|ใม่/g, 'ไม่ได้'],
+  [/อ้างล้างมือ/g, 'อ่างล้างมือ'],
+  [/สปรย์/g, 'สเปรย์'],
+  [/ทิป/g, 'ไฟตัด'], 
+  [/erorr|error|เอ่อเร่อ|เอเร่อ/gi, 'เออเร่อ'],
+  [/ปลิ้นเตอร์|ปลิ้น/g, 'ปริ้นเตอร์'],
+  [/สานพาน|สายพาย/g, 'สายพาน'],
+  [/กะตุก/g, 'กระตุก'],
+  [/บูล่ิง|บูลิ่ง|Cooling|cooling/gi, 'คูลลิ่ง'],
+  [/สวตว์|สวิท|สวิต/g, 'สวิตช์'],
+  [/สแลนเดอร์/g, 'กระบอกลม'],
+  [/วาส์ว|วาร์ว|วาว์ล|วาวล์/g, 'วาล์ว'],
+  [/ลลอย|Alloy|alloy/g, 'อัลลอยด์'],
+  [/รถเข๊น/g, 'รถเข็น'],
+  [/นำยา|นั้ายา/g, 'น้ำยา'],
+  [/เตรื่อง|เดรื่อง|เคื่อง/g, 'เครื่อง'],
+  [/ซํกผ้า|ชักผ้า/g, 'ซักผ้า'],
+  [/ฟลิม์/g, 'ฟิล์ม'],
+  [/laek|leak/gi, 'รั่ว'], 
 
   // ===== สะกดผิดทั่วไป =====
   [/เปลื่ยน|เปลียน|เปรี่ยน|เปลื่ยน/g, 'เปลี่ยน'],
@@ -910,14 +972,43 @@ export function assemble(tokens) {
 }
 
 export function dictTranslate(text) {
-  if (!text) return text
-  const s = String(text).trim()
-  if (_dict[s]) return _dict[s].en
-  if (_phrases[s]) return _phrases[s]   
-  const norm = normalizeThaiText(s)
-  if (_phrases[norm]) return _phrases[norm]   
-  if (_dict[norm]) return _dict[norm].en
-  return assemble(tokenize(norm))
+  if (!text) return text;
+  let s = String(text).trim();
+
+  // --- 🔥 Error Code Parser (New Feature) ---
+  let errorCodeStr = '';
+  // ดักจับ Error, Alarm, Err, โค้ด, เออเร่อ ที่ตามด้วยรหัส
+  const errRegex = /(?:error|alarm|err|เออเร่อ|โค้ด)\s*[-_:]?\s*([a-zA-Z0-9]+)/i;
+  const errMatch = s.match(errRegex);
+  
+  if (errMatch) {
+    errorCodeStr = ` (Error Code: ${errMatch[1].toUpperCase()})`;
+    // ยุบรวมประโยคให้เหลือแค่ "เออเร่อ" เพื่อให้ Tokenizer นำไปแปลตามไวยากรณ์หลักต่อ
+    s = s.replace(errRegex, 'เออเร่อ');
+  }
+
+  // --- Translation Logic ---
+  let result = "";
+  if (_dict[s]) result = _dict[s].en;
+  else if (_phrases[s]) result = _phrases[s];
+  else {
+    const norm = normalizeThaiText(s);
+    if (_phrases[norm]) result = _phrases[norm];
+    else if (_dict[norm]) result = _dict[norm].en;
+    else result = assemble(tokenize(norm));
+  }
+
+  // --- Append Error Code ---
+  if (errorCodeStr) {
+    // นำ Error Code ไปแทรกก่อนจุด Full stop (ถ้ามี)
+    if (result.endsWith('.')) {
+      result = result.slice(0, -1) + errorCodeStr + '.';
+    } else {
+      result += errorCodeStr;
+    }
+  }
+
+  return result;
 }
 
 export function hasThai(text) {
