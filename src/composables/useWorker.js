@@ -143,6 +143,7 @@ export function useWorker() {
 
       const timeout = setTimeout(() => {
         workerCallbacks.delete(id)
+        if (!workerCallbacks.size) setReady()  // fix: คืน status หลัง timeout
         reject(new Error('Worker timeout'))
       }, 30000)
 
