@@ -110,12 +110,13 @@ sap-excel-converter/
 │   │   ├── useWorker.js           # Web Worker management
 │   │   └── useTranslate.js        # AI Translation + retry logic
 │   ├── utils/
-│   │   ├── excelHelpers.js        # XLSX parsing, date conversion
+│   │   ├── sharedParsing.js       # Date parsing + grid processing (shared)
+│   │   ├── excelHelpers.js        # XLSX file reading, grid extraction
 │   │   ├── tableDetect.js         # SAP table type + RAG formatters
 │   │   ├── mergeUtils.js          # Order key normalization + merge filter
 │   │   └── translateDict.js       # Thai maintenance dictionary + NLP engine
 │   └── workers/
-│       └── excelWorker.js         # Web Worker (pure JS, no XLSX)
+│       └── excelWorker.js         # Web Worker (imports from sharedParsing)
 ├── public/
 │   └── favicon.svg
 ├── index.html
@@ -150,6 +151,20 @@ You can replace this with:
 ## Environment Variables
 
 No environment variables required. All settings are configured in the UI.
+
+---
+
+## Changelog
+
+### Latest
+
+- **fix:** ปุ่ม Convert / Merge ไม่ค้าง disabled เมื่อเกิด error (เพิ่ม `try/finally`)
+- **fix:** Progress bar ซ่อนตัวเองหลังแปลงเสร็จทุกกรณี
+- **fix:** Worker status คืนกลับเป็น Ready หลังไฟล์ timeout (30s)
+- **fix:** แถบ progress แปลภาษาซ่อนอัตโนมัติหลังเสร็จ 3 วินาที
+- **fix:** Memory leak — Object URLs ถูก revoke ก่อนสร้างชุดใหม่และตอน clearAll
+- **fix:** Generic table type ไม่ถูกทิ้งแล้วในระหว่าง Merge
+- **refactor:** แยก parsing logic ออกเป็น `sharedParsing.js` — Worker และ Fallback mode ใช้โค้ดเดียวกัน
 
 ---
 
