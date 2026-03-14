@@ -926,7 +926,6 @@ export function tokenize(text) {
     } else {
       let end = i + 1
       while (end < chars.length && chars[end] !== ' ') {
-        if (trie[chars[end]]) break   
         let n2 = trie, k2 = end, hit = false
         while (k2 < chars.length && n2[chars[k2]]) {
           n2 = n2[chars[k2]]; k2++
@@ -1025,7 +1024,7 @@ export const _normRules = [
   // ==========================================
   [/สายพานลำเลียง/g, 'สายพาน'],
   [/พูลเล่ย์|มู่เล่ย์|พูเล่/g, 'พูลเลย์'],
-  [/เฟืองเกียร์|เฟือง/g, 'เกียร์'],
+  [/เฟืองเกียร์/g, 'เฟือง'],
   [/ลูกปืน|เบริ่ง|แบริ่งแตก|ลูกปืนแตก/g, 'แบริ่ง'],
   [/เพลาหัก|เพลาแตก/g, 'เพลาเสีย'],
   [/ตระแกรง/g, 'ตะแกรง'],
@@ -1054,10 +1053,8 @@ export const _normRules = [
   [/เบรคเกอร์|เบรกเกอ|breaker/gi, 'เบรกเกอร์'],
   [/สายกราวน์|สายดิน/g, 'สายกราวด์'],
   [/ปลั๊กไฟ/g, 'ปลั๊ก'],
-  [/ไฟไม่เข้า|ไฟไม่มา/g, 'ไม่มีไฟ'],
-  [/ไฟตก/g, 'แรงดันตก'],
-  [/ไฟเกิน/g, 'แรงดันเกิน'],
-  [/ไฟช็อต|ไฟช๊อต|ช๊อต|ช๊อตต/g, 'ไฟช็อต'],
+  [/ไฟไม่มา/g, 'ไฟไม่เข้า'],
+  [/ไฟช็อต|ไฟช๊อต|ช๊อต|ช๊อตต/g, 'ช็อต'],
   [/แมกเนติก|แม๊คเนติก|แมคเนติก|แมคเนติค/g, 'แมกเนติก'],
   [/คาปาซิเตอ|คาปา|แคป|คอนเดนเซอร์ไฟ|cap bank/gi, 'คาปา'],
   [/พาวเวอ|พาวเวอร์|เพาเวอ|power supply/gi, 'เพาเวอร์ซัพพลาย'],
@@ -1106,7 +1103,6 @@ export const _normRules = [
   [/เซอร์โวมอเตอ(?=[^ร]|$)/g, 'เซอร์โวมอเตอร์'],
   [/รอบไม่นิ่ง|ความเร็วไม่นิ่ง/g, 'รอบไม่คงที่'],
   [/หมุนไม่ได้/g, 'ไม่หมุน'],
-  [/หมุนช้า/g, 'รอบต่ำ'],
 
   // ==========================================
   // 👓 งานผลิตเลนส์ และกระบวนการผลิต (Optical & Production)
@@ -1134,7 +1130,7 @@ export const _normRules = [
   [/ทำงานใม่ได้|ไม่ทำงานแล้ว/g, 'ทำงานไม่ได้'],
   [/ช่อม|ซ่อมแซม|ซอม|แก้ไข|ซ่อมบำรุง/g, 'ซ่อม'],
   [/ย้าน/g, 'ย้าย'],
-  [/ปรับตั่ง|ตั้งค่า|เซ็ตอัพ|setup/gi, 'ปรับตั้ง'],
+  [/ปรับตั่ง|เซ็ตอัพ|setup/gi, 'ตั้งค่า'],
   [/ตรวจเช็ค|เช็ค|เชค|เชก/g, 'ตรวจสอบ'],
   [/เคลียฝุ่น|เคลียร์ฝุ่น|เป่าฝุ่น/g, 'ทำความสะอาด'],
   [/รีเซต|reset|รีเซ็ท/gi, 'รีเซ็ต'],
@@ -1333,7 +1329,7 @@ export function dictTranslate(text) {
   // --- 🔥 Error Code Parser (New Feature) ---
   let errorCodeStr = '';
   // ดักจับ Error, Alarm, Err, โค้ด, เออเร่อ ที่ตามด้วยรหัส
-  const errRegex = /(?:error|alarm|err|เออเร่อ|โค้ด)\s*[-_:]?\s*([a-zA-Z0-9]+)/i;
+  const errRegex = /\b(?:error|alarm|err|เออเร่อ|โค้ด)\b\s*[-_:]?\s*([A-Za-z]?\d[a-zA-Z0-9]*)/i;
   const errMatch = s.match(errRegex);
   
   if (errMatch) {
@@ -1371,5 +1367,5 @@ export function hasThai(text) {
   return /[\u0E00-\u0E7F]/.test(String(text))
 }
 
-export function resetFuzzyHits() { _fuzzyHits = 0 }
-export function resetMetrics() { _metrics.fuzzyHits = 0; _metrics.unknownTokens = 0 }
+export function resetFuzzyHits() { _fuzzyHits = 0; _metrics.fuzzyHits = 0 }
+export function resetMetrics() { _metrics.fuzzyHits = 0; _metrics.unknownTokens = 0; _fuzzyHits = 0 }
