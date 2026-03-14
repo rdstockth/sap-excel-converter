@@ -94,6 +94,7 @@ function removeFile(id) {
 }
 
 function clearAll() {
+  revokeAllUrls()  // Bug 2 fix: release object URLs ก่อนล้าง
   files.value = []; totalRows.value = 0; doneCount.value = 0
   downloadUrls.value = []; downloadItems.value = []; showDlCard.value = false
   progress.show = false; preview.html = ''
@@ -103,6 +104,12 @@ function clearAll() {
 // ─────────────────────────────────────────────────
 // Download
 // ─────────────────────────────────────────────────
+// Bug 2 fix: revoke ก่อน clear เสมอ
+function revokeAllUrls() {
+  downloadItems.value.forEach(item => {
+    try { URL.revokeObjectURL(item.url) } catch (_) {}
+  })
+}
 const TYPE_META = {
   json:         { bg:'var(--accent-lt)',  color:'var(--accent)',  border:'#BFDBFE', label:'JSON' },
   jsonl:        { bg:'var(--jsonl-lt)',   color:'var(--jsonl)',   border:'#BAE6FD', label:'JSONL' },
@@ -174,66 +181,74 @@ const converting = ref(false)
 async function convertAll(mode) {
   if (!files.value.length) { showToast('⚠️ กรุณาเพิ่มไฟล์ก่อน'); return }
   converting.value = true
+  // Bug 2 fix: revoke URLs เก่าก่อนสร้างชุดใหม่
+  revokeAllUrls()
   showDlCard.value = false; downloadItems.value = []; downloadUrls.value = []
   progress.show = true; progress.pct = 0
   totalRows.value = 0; doneCount.value = 0
 
-  for (let i = 0; i < files.value.length; i++) {
-    const item = files.value[i]
-    item.status = 'converting'
-    try {
-      const records = await readExcel(item.file, settings.autoHeader)
-      item.rows = records.length; totalRows.value += records.length; item.status = 'done'; doneCount.value++
-      const stem     = item.file.name.replace(/\.[^.]+$/, '')
-      const stamp    = ts()
-      const tableType = detectTableType(records)
+  try {
+    for (let i = 0; i < files.value.length; i++) {
+      const item = files.value[i]
+      item.status = 'converting'
+      try {
+        const records = await readExcel(item.file, settings.autoHeader)
+        item.rows = records.length; totalRows.value += records.length; item.status = 'done'; doneCount.value++
+        const stem     = item.file.name.replace(/\.[^.]+$/, '')
+        const stamp    = ts()
+        const tableType = detectTableType(records)
 
-      if (settings.aiTranslate) {
-        const singleData = {}; singleData[tableType] = records
-        const msg = await runTranslation(singleData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries)
-        if (msg) showToast(msg)
-      }
-
-      if (mode === 'json' || mode === 'both') {
-        const indent = settings.prettyJson ? 2 : undefined
-        if (settings.splitFile && records.length > settings.splitSize) {
-          const total = Math.ceil(records.length / settings.splitSize)
-          for (let p = 0; p < total; p++) {
-            const name = stem + stamp + '_part' + (p+1) + 'of' + total + '.json'
-            const url = createObjectUrl(JSON.stringify(records.slice(p*settings.splitSize,(p+1)*settings.splitSize), null, indent), 'application/json')
-            addDlEntry(name, url, records.length, 'json')
-          }
-        } else {
-          addDlEntry(stem+stamp+'.json', createObjectUrl(JSON.stringify(records, null, indent), 'application/json'), records.length, 'json')
+        if (settings.aiTranslate) {
+          const singleData = {}; singleData[tableType] = records
+          const msg = await runTranslation(singleData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries)
+          if (msg) showToast(msg)
         }
-      }
 
-      if (mode === 'jsonl' || mode === 'both') {
-        const useFinetune = settings.jsonlFinetune
-        const jsonlText = useFinetune ? recordsToFineTuneJsonl(records, tableType) : recordsToJsonl(records)
-        const jsonlParts = splitJsonl(jsonlText)
-        const suffix = useFinetune ? '_finetune' : ''
-        jsonlParts.forEach(part => {
-          addDlEntry(stem+stamp+suffix+part.suffix+'.jsonl', createObjectUrl(part.text, 'application/x-ndjson'), records.length, useFinetune ? 'jsonl-ft' : 'jsonl')
-        })
-      }
+        if (mode === 'json' || mode === 'both') {
+          const indent = settings.prettyJson ? 2 : undefined
+          if (settings.splitFile && records.length > settings.splitSize) {
+            const total = Math.ceil(records.length / settings.splitSize)
+            for (let p = 0; p < total; p++) {
+              const name = stem + stamp + '_part' + (p+1) + 'of' + total + '.json'
+              const url = createObjectUrl(JSON.stringify(records.slice(p*settings.splitSize,(p+1)*settings.splitSize), null, indent), 'application/json')
+              addDlEntry(name, url, records.length, 'json')
+            }
+          } else {
+            addDlEntry(stem+stamp+'.json', createObjectUrl(JSON.stringify(records, null, indent), 'application/json'), records.length, 'json')
+          }
+        }
 
-      if (settings.ragMode) {
-        const parts = splitRecordsToRagTexts(records, item.file.name, settings.splitSize, settings.splitFile)
-        parts.forEach(part => addDlEntry(stem+stamp+'_RAG_'+tableType+part.suffix+'.txt', createObjectUrl(part.text, 'text/plain;charset=utf-8'), records.length, 'rag'))
-      }
+        if (mode === 'jsonl' || mode === 'both') {
+          const useFinetune = settings.jsonlFinetune
+          const jsonlText = useFinetune ? recordsToFineTuneJsonl(records, tableType) : recordsToJsonl(records)
+          const jsonlParts = splitJsonl(jsonlText)
+          const suffix = useFinetune ? '_finetune' : ''
+          jsonlParts.forEach(part => {
+            addDlEntry(stem+stamp+suffix+part.suffix+'.jsonl', createObjectUrl(part.text, 'application/x-ndjson'), records.length, useFinetune ? 'jsonl-ft' : 'jsonl')
+          })
+        }
 
-      if (i === 0) {
-        if (mode === 'jsonl' || mode === 'both') showPreview(null, records.slice(0,3).map(r=>JSON.stringify(r)).join('\n'), 'jsonl')
-        else if (settings.ragMode) showPreview(null, recordToChunk(records[0], tableType), 'rag')
-        else showPreview(records.slice(0,3), null, 'json')
-      }
-    } catch (err) { item.status = 'error'; console.error(err) }
-    progress.pct = Math.round(((i+1)/files.value.length)*100)
-    progress.label = (i+1) + ' / ' + files.value.length
+        if (settings.ragMode) {
+          const parts = splitRecordsToRagTexts(records, item.file.name, settings.splitSize, settings.splitFile)
+          parts.forEach(part => addDlEntry(stem+stamp+'_RAG_'+tableType+part.suffix+'.txt', createObjectUrl(part.text, 'text/plain;charset=utf-8'), records.length, 'rag'))
+        }
+
+        if (i === 0) {
+          if (mode === 'jsonl' || mode === 'both') showPreview(null, records.slice(0,3).map(r=>JSON.stringify(r)).join('\n'), 'jsonl')
+          else if (settings.ragMode) showPreview(null, recordToChunk(records[0], tableType), 'rag')
+          else showPreview(records.slice(0,3), null, 'json')
+        }
+      } catch (err) { item.status = 'error'; console.error(err) }
+      progress.pct = Math.round(((i+1)/files.value.length)*100)
+      progress.label = (i+1) + ' / ' + files.value.length
+    }
+    showDlCard.value = true
+    showToast('✅ แปลงสำเร็จ ' + doneCount.value + '/' + files.value.length + ' ไฟล์')
+  } finally {
+    // Bug 1 & 3 fix: รับประกันว่า converting และ progress จะถูก reset เสมอ แม้เกิด error
+    converting.value = false
+    progress.show = false
   }
-  showDlCard.value = true; converting.value = false
-  showToast('✅ แปลงสำเร็จ ' + doneCount.value + '/' + files.value.length + ' ไฟล์')
 }
 
 // ─────────────────────────────────────────────────
@@ -244,63 +259,70 @@ async function mergeAndRag() {
   if (!files.value.length) { showToast('⚠️ กรุณาเพิ่มไฟล์ก่อน'); return }
   merging.value = true
   progress.show = true; progress.pct = 0
+  // Bug 2 fix: revoke URLs เก่าก่อนสร้างชุดใหม่
+  revokeAllUrls()
   showDlCard.value = true; downloadItems.value = []; downloadUrls.value = []
 
-  const allTableData = {}
-  for (let i = 0; i < files.value.length; i++) {
-    progress.pct = Math.round((i/files.value.length)*50)
-    progress.label = 'อ่านไฟล์ ' + (i+1) + '/' + files.value.length + '...'
-    try {
-      const records = await readExcel(files.value[i].file, settings.autoHeader)
-      const tableType = detectTableType(records)
-      if (!allTableData[tableType]) allTableData[tableType] = []
-      allTableData[tableType].push(...records)
-    } catch (e) { console.error(e) }
+  try {
+    const allTableData = {}
+    for (let i = 0; i < files.value.length; i++) {
+      progress.pct = Math.round((i/files.value.length)*50)
+      progress.label = 'อ่านไฟล์ ' + (i+1) + '/' + files.value.length + '...'
+      try {
+        const records = await readExcel(files.value[i].file, settings.autoHeader)
+        const tableType = detectTableType(records)
+        if (!allTableData[tableType]) allTableData[tableType] = []
+        allTableData[tableType].push(...records)
+      } catch (e) { console.error(e) }
+    }
+
+    progress.label = 'กำลัง Merge...'
+    const rawOrderMap = buildOrderMap(allTableData)
+    _lastRawOrderMap  = rawOrderMap
+    refreshMinTableStats(rawOrderMap)
+    const filteredOrderMap = applyMergeFilter(rawOrderMap, settings.filterComplete, minTableCount.value, requiredTables)
+    updateFilterStats(rawOrderMap, filteredOrderMap)
+    renderDebug(allTableData, rawOrderMap)
+
+    if (settings.aiTranslate) {
+      progress.label = 'กำลังแปลภาษา...'
+      const msg = await runTranslation(allTableData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries)
+      if (msg) showToast(msg)
+    }
+
+    const orderMap = filteredOrderMap
+    const mergedRecords = Object.entries(orderMap).map(([orderKey, td]) => ({
+      order: orderKey, IW38: td.IW38.length ? td.IW38 : null, IW47: td.IW47.length ? td.IW47 : null,
+      ZPM02: td.ZPM02.length ? td.ZPM02 : null, ZPUCMN: td.ZPUCMN.length ? td.ZPUCMN : null, Hours: td.Hours.length ? td.Hours : null
+    }))
+
+    const orderCount = Object.keys(orderMap).length
+    const chunks     = Object.entries(orderMap).map(([k, td], idx) => '--- Order '+(idx+1)+'/'+orderCount+' ---\n'+mergedOrderToChunk(k, td))
+    const now        = new Date().toISOString().replace(/[-T:Z]/g,'').slice(0,15)
+    const tableNames = Object.keys(allTableData).join(', ')
+
+    progress.pct = 100; progress.label = 'Merged ' + orderCount + ' Orders จาก ' + files.value.length + ' ไฟล์'
+
+    addDlEntry('MERGED_'+now+'.json',  createObjectUrl(JSON.stringify(mergedRecords, null, 2),'application/json'), orderCount, 'merged')
+    addDlEntry('MERGED_'+now+'.jsonl', createObjectUrl(mergedRecords.map(r=>JSON.stringify(r)).join('\n'),'application/x-ndjson'), orderCount, 'merged-jsonl')
+
+    const ragParts = splitMergedRagTexts(chunks, tableNames, orderCount, settings.splitSize, settings.splitFile)
+    ragParts.forEach(part => addDlEntry('MERGED_RAG_'+now+part.suffix+'.txt', createObjectUrl(part.text,'text/plain;charset=utf-8'), orderCount, 'merged-rag'))
+
+    // Best sample preview
+    const sampleKey = Object.keys(orderMap).reduce((best, k) => getTableScore(orderMap[k]) > getTableScore(orderMap[best]) ? k : best, Object.keys(orderMap)[0])
+    if (sampleKey) {
+      const sc = ['IW38','IW47','ZPM02','ZPUCMN','Hours'].filter(t => orderMap[sampleKey][t]?.length > 0).length
+      showPreview(null, '# ตัวอย่าง Order ที่มีข้อมูลครบที่สุด (' + sc + ' tables)\n\n' + mergedOrderToChunk(sampleKey, orderMap[sampleKey]), 'rag')
+    }
+
+    const multiTableCount = Object.keys(orderMap).filter(k => getTableScore(orderMap[k]) > 1).length
+    showToast('✅ ' + orderCount + ' Orders | 🔗 Match หลาย table: ' + multiTableCount)
+  } finally {
+    // Bug 1 fix: รับประกันว่า merging และ progress จะถูก reset เสมอ แม้เกิด error
+    merging.value = false
+    progress.show = false
   }
-
-  progress.label = 'กำลัง Merge...'
-  const rawOrderMap = buildOrderMap(allTableData)
-  _lastRawOrderMap  = rawOrderMap
-  refreshMinTableStats(rawOrderMap)
-  const filteredOrderMap = applyMergeFilter(rawOrderMap, settings.filterComplete, minTableCount.value, requiredTables)
-  updateFilterStats(rawOrderMap, filteredOrderMap)
-  renderDebug(allTableData, rawOrderMap)
-
-  if (settings.aiTranslate) {
-    progress.label = 'กำลังแปลภาษา...'
-    const msg = await runTranslation(allTableData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries)
-    if (msg) showToast(msg)
-  }
-
-  const orderMap = filteredOrderMap
-  const mergedRecords = Object.entries(orderMap).map(([orderKey, td]) => ({
-    order: orderKey, IW38: td.IW38.length ? td.IW38 : null, IW47: td.IW47.length ? td.IW47 : null,
-    ZPM02: td.ZPM02.length ? td.ZPM02 : null, ZPUCMN: td.ZPUCMN.length ? td.ZPUCMN : null, Hours: td.Hours.length ? td.Hours : null
-  }))
-
-  const orderCount = Object.keys(orderMap).length
-  const chunks     = Object.entries(orderMap).map(([k, td], idx) => '--- Order '+(idx+1)+'/'+orderCount+' ---\n'+mergedOrderToChunk(k, td))
-  const now        = new Date().toISOString().replace(/[-T:Z]/g,'').slice(0,15)
-  const tableNames = Object.keys(allTableData).join(', ')
-
-  progress.pct = 100; progress.label = 'Merged ' + orderCount + ' Orders จาก ' + files.value.length + ' ไฟล์'
-
-  addDlEntry('MERGED_'+now+'.json',  createObjectUrl(JSON.stringify(mergedRecords, null, 2),'application/json'), orderCount, 'merged')
-  addDlEntry('MERGED_'+now+'.jsonl', createObjectUrl(mergedRecords.map(r=>JSON.stringify(r)).join('\n'),'application/x-ndjson'), orderCount, 'merged-jsonl')
-
-  const ragParts = splitMergedRagTexts(chunks, tableNames, orderCount, settings.splitSize, settings.splitFile)
-  ragParts.forEach(part => addDlEntry('MERGED_RAG_'+now+part.suffix+'.txt', createObjectUrl(part.text,'text/plain;charset=utf-8'), orderCount, 'merged-rag'))
-
-  // Best sample preview
-  const sampleKey = Object.keys(orderMap).reduce((best, k) => getTableScore(orderMap[k]) > getTableScore(orderMap[best]) ? k : best, Object.keys(orderMap)[0])
-  if (sampleKey) {
-    const sc = ['IW38','IW47','ZPM02','ZPUCMN','Hours'].filter(t => orderMap[sampleKey][t].length > 0).length
-    showPreview(null, '# ตัวอย่าง Order ที่มีข้อมูลครบที่สุด (' + sc + ' tables)\n\n' + mergedOrderToChunk(sampleKey, orderMap[sampleKey]), 'rag')
-  }
-
-  const multiTableCount = Object.keys(orderMap).filter(k => getTableScore(orderMap[k]) > 1).length
-  merging.value = false
-  showToast('✅ ' + orderCount + ' Orders | 🔗 Match หลาย table: ' + multiTableCount)
 }
 
 // ─────────────────────────────────────────────────
