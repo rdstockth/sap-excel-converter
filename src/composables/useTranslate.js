@@ -30,13 +30,20 @@ export function useTranslate() {
   // FIX #5: store original field values so we can restore them if needed
   const _originalValues = new WeakMap()
 
+  let _hideStatusTimer = null
+
   function setStatus(text, sub, pct, retryAttempt = null, maxRetry = null) {
+    clearTimeout(_hideStatusTimer)
     translateStatus.show = true
     translateStatus.text = text
     translateStatus.sub  = sub || ''
     translateStatus.pct  = pct !== undefined ? Math.min(100, pct) : translateStatus.pct
     translateStatus.retryAttempt = retryAttempt
     translateStatus.maxRetry     = maxRetry
+    // fix: ซ่อนอัตโนมัติเมื่อ progress ครบ 100% หรือ 80% (error case)
+    if (pct >= 80) {
+      _hideStatusTimer = setTimeout(() => { translateStatus.show = false }, 3000)
+    }
   }
 
   function setFailedBadge(count) {
