@@ -135,17 +135,18 @@ export function useTranslate() {
 'Translate Thai maintenance issue descriptions into clear, natural English maintenance report sentences.\n\n' +
 'Guidelines:\n' +
 '1. Write natural maintenance-report sentences — NOT word-for-word translations.\n' +
-'2. Prefer this structure when applicable: "The [component] in/at/on the [location] is [symptom]."\n' +
+'2. Prefer this structure when applicable: "The [component] in/at/on the [location] is/has [symptom]."\n' +
 '3. Use correct prepositions:\n' +
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
-'5. Preserve all equipment codes, model numbers, and identifiers exactly as provided.\n' +
-'6. Keep sentences concise and professional (1 sentence preferred).\n' +
-'7. Use present tense to describe the current condition.\n' +
-'8. Do not add assumptions or extra details not present in the original text.\n' +
-'9. When describing faults, prefer standard maintenance terms such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n\n' +
+'4. Preserve all equipment codes, tag numbers, model names, and identifiers exactly as provided.\n' +
+'5. Keep the sentence concise and professional.\n' +
+'6. Use present tense to describe the current condition.\n' +
+'7. Do not add assumptions or extra details not present in the original text.\n' +
+'8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
+'9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
+'10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -160,16 +161,17 @@ export function useTranslate() {
 'Rewrite each item into a clear, natural, professional maintenance report sentence.\n\n' +
 'Guidelines:\n' +
 '1. Correct grammar, word order, and phrasing so the sentence reads naturally in a maintenance report.\n' +
-'2. Prefer this structure when applicable: "The [component] in/at/on the [location] is [symptom]."\n' +
+'2. Prefer this structure when applicable: "The [component] in/at/on the [location] is/has [symptom]."\n' +
 '3. Use correct prepositions:\n' +
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Preserve all equipment codes, model numbers, and identifiers exactly as provided.\n' +
-'5. Keep the sentence concise and professional (1 sentence preferred).\n' +
+'4. Preserve all equipment codes, tag numbers, model numbers, and identifiers exactly as provided.\n' +
+'5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
-'8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n\n' +
+'8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
+'9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -191,10 +193,11 @@ export function useTranslate() {
 '   - Equipment / machines / positions → "at the"\n' +
 '4. Preserve all equipment codes, tag numbers, model names, and identifiers exactly as provided.\n' +
 '5. If the original text is already clear and complete, keep it with only minor grammatical improvements.\n' +
-'6. Keep the sentence concise and professional (1 sentence preferred).\n' +
+'6. Keep the sentence concise and professional.\n' +
 '7. Use present tense to describe the current condition.\n' +
 '8. Do not add assumptions or extra details not present in the original text.\n' +
-'9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n\n' +
+'9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
+'10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
