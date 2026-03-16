@@ -64,8 +64,28 @@ export function useTranslate() {
     const raw = (data.choices?.[0]?.message?.content || '')
       .replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
       .replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/, '').trim()
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed) || parsed.length !== texts.length) throw new Error('API returned unexpected format')
+
+    let parsed
+    try {
+      parsed = JSON.parse(raw)
+    } catch (e) {
+      throw new Error('API returned non-JSON: ' + raw.slice(0, 120))
+    }
+
+    if (!Array.isArray(parsed)) {
+      // Sometimes API wraps array in an object e.g. { translations: [...] }
+      const nested = parsed?.translations || parsed?.results || parsed?.data || Object.values(parsed)[0]
+      if (Array.isArray(nested)) parsed = nested
+      else throw new Error('API returned non-array: ' + JSON.stringify(parsed).slice(0, 120))
+    }
+
+    if (parsed.length !== texts.length) {
+      console.warn('[Translate] Length mismatch: expected', texts.length, 'got', parsed.length, '— salvaging partial results')
+      // Pad or trim to match input length — better than losing the whole batch
+      while (parsed.length < texts.length) parsed.push(null)
+      parsed = parsed.slice(0, texts.length)
+    }
+
     return parsed
   }
 
