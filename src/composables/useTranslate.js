@@ -61,11 +61,21 @@ export function useTranslate() {
   }
 
   // ── Shared fetch core ──
+  // Sends texts as { "0": text0, "1": text1, ... } so AI must return keyed object.
+  // This prevents ordering bugs where the model reorders or merges output lines.
   async function _fetchAPI(texts, endpoint, prompt) {
+    // Build indexed input object: { "0": "...", "1": "...", ... }
+    const indexedInput = {}
+    texts.forEach((t, i) => { indexedInput[String(i)] = t })
+
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: Math.min(4000, Math.max(1000, texts.length * 35)) })
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        max_tokens: Math.min(4000, Math.max(1000, texts.length * 35))
+      })
     })
     if (!res.ok) throw new Error('API HTTP ' + res.status)
     const data = await res.json()
@@ -80,21 +90,39 @@ export function useTranslate() {
       throw new Error('API returned non-JSON: ' + raw.slice(0, 120))
     }
 
-    if (!Array.isArray(parsed)) {
-      // Sometimes API wraps array in an object e.g. { translations: [...] }
-      const nested = parsed?.translations || parsed?.results || parsed?.data || Object.values(parsed)[0]
-      if (Array.isArray(nested)) parsed = nested
-      else throw new Error('API returned non-array: ' + JSON.stringify(parsed).slice(0, 120))
+    // ── Normalise response → ordered array ──
+    if (Array.isArray(parsed)) {
+      // Fallback: AI returned plain array despite instruction — use as-is with padding
+      if (parsed.length !== texts.length) {
+        console.warn('[Translate] Array length mismatch: expected', texts.length, 'got', parsed.length)
+        while (parsed.length < texts.length) parsed.push(null)
+        parsed = parsed.slice(0, texts.length)
+      }
+      return parsed
     }
 
-    if (parsed.length !== texts.length) {
-      console.warn('[Translate] Length mismatch: expected', texts.length, 'got', parsed.length, '— salvaging partial results')
-      // Pad or trim to match input length — better than losing the whole batch
-      while (parsed.length < texts.length) parsed.push(null)
-      parsed = parsed.slice(0, texts.length)
+    if (parsed && typeof parsed === 'object') {
+      // Unwrap nested wrapper: { translations: {...} } or { results: {...} }
+      const inner = parsed?.translations || parsed?.results || parsed?.data
+      if (inner && typeof inner === 'object' && !Array.isArray(inner)) parsed = inner
+      else if (inner && Array.isArray(inner)) {
+        // Got array inside wrapper — recurse to array handler above
+        const arr = inner
+        while (arr.length < texts.length) arr.push(null)
+        return arr.slice(0, texts.length)
+      }
+
+      // Re-assemble in original index order — prevents swap bugs
+      const result = texts.map((_, i) => {
+        const val = parsed[String(i)] ?? parsed[i] ?? null
+        return typeof val === 'string' ? val : null
+      })
+      const missing = result.filter(v => v === null).length
+      if (missing > 0) console.warn('[Translate] Keyed response missing', missing, 'of', texts.length, 'entries')
+      return result
     }
 
-    return parsed
+    throw new Error('API returned unexpected type: ' + typeof parsed)
   }
 
   // ── API: Translate Thai → English ──
@@ -108,8 +136,8 @@ export function useTranslate() {
       '4. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
       '5. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
       '6. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
-      'Return ONLY a JSON array of translated strings in the same order. No markdown, no preamble.\n\n' +
-      'Input:\n' + JSON.stringify(texts)
+      'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
+      'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
@@ -124,8 +152,8 @@ export function useTranslate() {
       '3. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
       '4. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
       '5. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
-      'Return ONLY a JSON array of polished strings in the same order. No markdown, no preamble.\n\n' +
-      'Input:\n' + JSON.stringify(texts)
+      'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
+      'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
@@ -141,8 +169,8 @@ export function useTranslate() {
       '4. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
       '5. If the text is already clear and complete, keep it with only minor improvements.\n' +
       '6. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
-      'Return ONLY a JSON array of rewritten strings in the same order. No markdown, no preamble.\n\n' +
-      'Input:\n' + JSON.stringify(texts)
+      'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
+      'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
