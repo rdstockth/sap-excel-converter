@@ -9,7 +9,46 @@ import { buildOrderMap, applyMergeFilter, getOrderKey, getOrderKeyRaw, normalize
 const { workerStatus, workerLabel, initWorker, readExcel } = useWorker()
 
 // ── Translate ──
-const { translateFields, translateCache, translateStatus, toggleField, runTranslation, retryFailed } = useTranslate()
+const { translateFields, translateCache, translateStatus, aiLog, clearLog, toggleField, runTranslation, retryFailed } = useTranslate()
+
+// ── Translation Log Panel ──
+const logPanelOpen  = ref(false)
+const logSearch     = ref('')
+const logFilter     = ref('all')   // 'all' | 'dict' | 'ai' | 'ai-retry'
+const logPage       = ref(1)
+const LOG_PAGE_SIZE = 50
+
+const filteredLog = computed(() => {
+  let items = aiLog.value
+  if (logFilter.value !== 'all') items = items.filter(e => e.source === logFilter.value)
+  const q = logSearch.value.trim().toLowerCase()
+  if (q) items = items.filter(e => e.original.toLowerCase().includes(q) || e.translated.toLowerCase().includes(q))
+  return items
+})
+
+const pagedLog = computed(() => {
+  const start = (logPage.value - 1) * LOG_PAGE_SIZE
+  return filteredLog.value.slice(start, start + LOG_PAGE_SIZE)
+})
+
+const totalLogPages = computed(() => Math.max(1, Math.ceil(filteredLog.value.length / LOG_PAGE_SIZE)))
+
+const logStats = computed(() => ({
+  total: aiLog.value.length,
+  dict:    aiLog.value.filter(e => e.source === 'dict').length,
+  ai:      aiLog.value.filter(e => e.source === 'ai').length,
+  aiRetry: aiLog.value.filter(e => e.source === 'ai-retry').length,
+}))
+
+function downloadLog() {
+  const rows = ['Original\tTranslated\tSource\tBatch\tTimestamp']
+  aiLog.value.forEach(e => rows.push([e.original, e.translated, e.source, e.batchNo, e.ts].join('\t')))
+  const url = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/tab-separated-values;charset=utf-8' }))
+  const a = document.createElement('a'); a.href = url
+  a.download = 'translation_log_' + new Date().toISOString().slice(0,19).replace(/[-T:]/g,'') + '.tsv'
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 // ── App state ──
 const files        = ref([])
@@ -732,6 +771,90 @@ onMounted(() => initWorker())
           </div>
         </div>
 
+        <!-- AI Translation Log Panel -->
+        <div v-if="aiLog.length > 0 || logPanelOpen" class="card">
+          <div class="card-header" style="cursor:pointer" @click="logPanelOpen = !logPanelOpen">
+            <span class="card-icon">📋</span>
+            <h2>Translation Log</h2>
+            <span class="pill" style="background:var(--accent-lt);color:var(--accent)">{{ logStats.total }} รายการ</span>
+            <span class="pill" style="margin-left:auto">{{ logPanelOpen ? 'ซ่อน ▲' : 'แสดง ▼' }}</span>
+          </div>
+
+          <div v-if="logPanelOpen" class="log-panel">
+
+            <!-- Stats bar -->
+            <div class="log-stats-bar">
+              <span class="log-stat-chip all" @click="logFilter='all'; logPage=1" :class="{active: logFilter==='all'}">
+                ทั้งหมด <strong>{{ logStats.total }}</strong>
+              </span>
+              <span class="log-stat-chip dict" @click="logFilter='dict'; logPage=1" :class="{active: logFilter==='dict'}">
+                📖 Dict <strong>{{ logStats.dict }}</strong>
+              </span>
+              <span class="log-stat-chip ai" @click="logFilter='ai'; logPage=1" :class="{active: logFilter==='ai'}">
+                🤖 AI <strong>{{ logStats.ai }}</strong>
+              </span>
+              <span v-if="logStats.aiRetry > 0" class="log-stat-chip retry" @click="logFilter='ai-retry'; logPage=1" :class="{active: logFilter==='ai-retry'}">
+                🔄 Retry <strong>{{ logStats.aiRetry }}</strong>
+              </span>
+              <div style="flex:1"></div>
+              <button class="log-btn-dl" @click.stop="downloadLog" title="Export เป็น .tsv">⬇ Export</button>
+              <button class="log-btn-clear" @click.stop="clearLog(); logPage=1" title="ล้าง log">🗑</button>
+            </div>
+
+            <!-- Search -->
+            <div style="padding: 0 12px 8px">
+              <input v-model="logSearch" @input="logPage=1" type="text" class="input-field"
+                placeholder="🔍 ค้นหาข้อความต้นฉบับหรือคำแปล..." style="width:100%;font-size:11.5px">
+            </div>
+
+            <!-- Table -->
+            <div class="log-table-wrap">
+              <table class="log-table">
+                <thead>
+                  <tr>
+                    <th style="width:34px">#</th>
+                    <th>ต้นฉบับ (Thai)</th>
+                    <th>คำแปล (English)</th>
+                    <th style="width:68px">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="filteredLog.length === 0">
+                    <td colspan="4" style="text-align:center;color:var(--sub2);padding:18px;font-size:11.5px">ไม่พบรายการที่ตรงกัน</td>
+                  </tr>
+                  <tr v-for="(entry, i) in pagedLog" :key="entry.original + entry.source"
+                    :class="['log-row', 'log-row--' + entry.source]">
+                    <td class="log-no">{{ (logPage - 1) * 50 + i + 1 }}</td>
+                    <td class="log-original">
+                      <span class="log-text-cell" :title="entry.original">{{ entry.original }}</span>
+                    </td>
+                    <td class="log-translated">
+                      <span class="log-text-cell" :title="entry.translated">{{ entry.translated }}</span>
+                    </td>
+                    <td class="log-source">
+                      <span class="log-source-badge" :class="'badge--' + entry.source">
+                        {{ entry.source === 'dict' ? '📖' : entry.source === 'ai' ? '🤖' : '🔄' }}
+                        {{ entry.source === 'ai-retry' ? 'retry' : entry.source }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="totalLogPages > 1" class="log-pagination">
+              <button :disabled="logPage <= 1" @click="logPage--" class="log-page-btn">‹ ก่อน</button>
+              <span style="font-size:11.5px;color:var(--sub)">
+                หน้า {{ logPage }} / {{ totalLogPages }}
+                <span style="color:var(--sub2)">({{ filteredLog.length }} รายการ)</span>
+              </span>
+              <button :disabled="logPage >= totalLogPages" @click="logPage++" class="log-page-btn">ถัดไป ›</button>
+            </div>
+
+          </div>
+        </div>
+
       </div>
       <!-- ═══ end RIGHT ═══ -->
 
@@ -780,4 +903,89 @@ header {
   text-transform: uppercase; font-family: 'Syne', sans-serif;
   box-shadow: 0 2px 8px rgba(79,70,229,0.3);
 }
+/* ── Translation Log Panel ── */
+.log-panel { padding-bottom: 4px; }
+
+.log-stats-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 8px 12px 8px; border-bottom: 1px solid var(--border-lt);
+}
+.log-stat-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; padding: 3px 9px; border-radius: 20px; cursor: pointer;
+  border: 1.5px solid transparent; transition: all .15s;
+  background: var(--bg2); color: var(--sub);
+}
+.log-stat-chip:hover { background: var(--hover); }
+.log-stat-chip.active.all    { border-color: var(--accent);  background: var(--accent-lt);  color: var(--accent); }
+.log-stat-chip.active.dict   { border-color: #059669;        background: #ECFDF5;           color: #065F46; }
+.log-stat-chip.active.ai     { border-color: var(--accent2); background: var(--accent2-lt); color: #5B21B6; }
+.log-stat-chip.active.retry  { border-color: var(--warn);    background: var(--warn-lt);    color: #92400E; }
+.log-stat-chip strong { font-weight: 700; }
+
+.log-btn-dl, .log-btn-clear {
+  font-size: 11px; padding: 3px 10px; border-radius: 7px; cursor: pointer;
+  border: 1.5px solid var(--border); background: var(--surface); color: var(--sub);
+  transition: all .15s;
+}
+.log-btn-dl:hover    { background: var(--accent-lt); border-color: var(--accent); color: var(--accent); }
+.log-btn-clear:hover { background: #FEF2F2; border-color: #FCA5A5; color: var(--danger); }
+
+.log-table-wrap {
+  overflow-x: auto; overflow-y: auto;
+  max-height: 400px;
+  border-top: 1px solid var(--border-lt);
+  border-bottom: 1px solid var(--border-lt);
+}
+.log-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 11.5px; font-family: 'DM Mono', monospace;
+}
+.log-table thead tr {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--bg2);
+}
+.log-table th {
+  text-align: left; font-size: 10.5px; font-weight: 600;
+  color: var(--sub); padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.log-table td { padding: 5px 10px; vertical-align: middle; border-bottom: 1px solid var(--border-lt); }
+.log-row:hover td { background: var(--hover); }
+.log-row--dict td { background: rgba(5,150,105,.03); }
+.log-row--ai td   { background: rgba(139,92,246,.03); }
+.log-row--ai-retry td { background: rgba(245,158,11,.04); }
+
+.log-no { color: var(--sub2); text-align: right; font-size: 10.5px; min-width: 28px; }
+.log-original  { max-width: 220px; }
+.log-translated { max-width: 260px; }
+.log-text-cell {
+  display: block; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text);
+}
+.log-original .log-text-cell  { color: #D97706; }
+.log-translated .log-text-cell { color: #1D4ED8; }
+
+.log-source { text-align: center; }
+.log-source-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  white-space: nowrap;
+}
+.badge--dict    { background: #ECFDF5; color: #065F46; border: 1px solid #6EE7B7; }
+.badge--ai      { background: var(--accent2-lt); color: #5B21B6; border: 1px solid #C4B5FD; }
+.badge--ai-retry { background: var(--warn-lt); color: #92400E; border: 1px solid #FCD34D; }
+
+.log-pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 8px 12px;
+}
+.log-page-btn {
+  font-size: 11.5px; padding: 3px 12px; border-radius: 7px; cursor: pointer;
+  border: 1.5px solid var(--border); background: var(--surface); color: var(--sub);
+}
+.log-page-btn:disabled { opacity: .35; cursor: default; }
+.log-page-btn:not(:disabled):hover { background: var(--accent-lt); border-color: var(--accent); color: var(--accent); }
 </style>
