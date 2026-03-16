@@ -79,7 +79,7 @@ const settings = reactive({
   engRewrite:    false,
   bypassDict:    false,
   aiApiEndpoint: 'https://thaillm.setthapong-pasavet.workers.dev/',
-  batchSize:     50,
+  batchSize:     20,
   maxRetries:    2,
 })
 
@@ -737,12 +737,7 @@ onMounted(() => initWorker())
 
               <div style="display:flex;align-items:center;gap:8px">
                 <div><div class="setting-sub">Batch Size (texts/call)</div></div>
-                <select v-model.number="settings.batchSize" style="margin-left:auto">
-                  <option :value="10">10 ข้อความ</option>
-                  <option :value="20">20 ข้อความ</option>
-                  <option :value="30">30 ข้อความ</option>
-                  <option :value="50">50 ข้อความ</option>
-                </select>
+                <span style="margin-left:auto;font-size:11.5px;font-family:'DM Mono',monospace;color:var(--sub);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:3px 10px">20 ข้อความ</span>
               </div>
 
               <div style="display:flex;align-items:center;gap:8px">
