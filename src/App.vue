@@ -14,7 +14,7 @@ const { translateFields, translateCache, translateStatus, aiLog, clearLog, toggl
 // ── Translation Log Panel ──
 const logPanelOpen  = ref(false)
 const logSearch     = ref('')
-const logFilter     = ref('all')   // 'all' | 'dict' | 'ai' | 'ai-retry'
+const logFilter     = ref('all')   // 'all' | 'dict' | 'dict-polish' | 'ai' | 'ai-retry' | 'eng-rewrite'
 const logPage       = ref(1)
 const LOG_PAGE_SIZE = 50
 
@@ -35,9 +35,11 @@ const totalLogPages = computed(() => Math.max(1, Math.ceil(filteredLog.value.len
 
 const logStats = computed(() => ({
   total: aiLog.value.length,
-  dict:    aiLog.value.filter(e => e.source === 'dict').length,
-  ai:      aiLog.value.filter(e => e.source === 'ai').length,
-  aiRetry: aiLog.value.filter(e => e.source === 'ai-retry').length,
+  dict:       aiLog.value.filter(e => e.source === 'dict').length,
+  dictPolish: aiLog.value.filter(e => e.source === 'dict-polish').length,
+  ai:         aiLog.value.filter(e => e.source === 'ai').length,
+  aiRetry:    aiLog.value.filter(e => e.source === 'ai-retry').length,
+  engRewrite: aiLog.value.filter(e => e.source === 'eng-rewrite').length,
 }))
 
 function downloadLog() {
@@ -73,6 +75,8 @@ const settings = reactive({
   splitFile:     false,
   splitSize:     1000,
   aiTranslate:   false,
+  dictPolish:    false,
+  engRewrite:    false,
   aiApiEndpoint: 'https://thaillm.setthapong-pasavet.workers.dev/',
   batchSize:     20,
   maxRetries:    2,
@@ -239,7 +243,7 @@ async function convertAll(mode) {
 
         if (settings.aiTranslate) {
           const singleData = {}; singleData[tableType] = records
-          const msg = await runTranslation(singleData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries)
+          const msg = await runTranslation(singleData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries, { dictPolish: settings.dictPolish, engRewrite: settings.engRewrite })
           if (msg) showToast(msg)
         }
 
@@ -325,7 +329,7 @@ async function mergeAndRag() {
 
     if (settings.aiTranslate) {
       progress.label = 'กำลังแปลภาษา...'
-      const msg = await runTranslation(allTableData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries)
+      const msg = await runTranslation(allTableData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries, { dictPolish: settings.dictPolish, engRewrite: settings.engRewrite })
       if (msg) showToast(msg)
     }
 
@@ -651,10 +655,31 @@ onMounted(() => initWorker())
               <label class="toggle"><input type="checkbox" v-model="settings.aiTranslate"><div class="toggle-track"></div></label>
             </div>
 
+            <div :style="{opacity: settings.aiTranslate ? '1' : '0.4'}" style="display:flex;flex-direction:column;gap:6px;padding-left:4px">
+              <!-- Mode: Dict → AI Polish -->
+              <div class="setting-row" style="background:var(--accent2-lt);border-radius:8px;padding:8px 10px;border:1px solid #DDD6FE">
+                <div>
+                  <div class="setting-label" style="color:#5B21B6">✨ Dict → AI Polish</div>
+                  <div class="setting-sub">หลังแปลด้วย Dict แล้ว → ส่งให้ AI เรียบเรียงประโยคให้เป็นธรรมชาติอีกครั้ง</div>
+                </div>
+                <label class="toggle"><input type="checkbox" v-model="settings.dictPolish" :disabled="!settings.aiTranslate"><div class="toggle-track"></div></label>
+              </div>
+
+              <!-- Mode: ENG → AI Rewrite -->
+              <div class="setting-row" style="background:#F0FDF4;border-radius:8px;padding:8px 10px;border:1px solid #BBF7D0">
+                <div>
+                  <div class="setting-label" style="color:#166534">✍️ ENG → AI Rewrite</div>
+                  <div class="setting-sub">ส่ง text ภาษาอังกฤษ (ที่ไม่มีภาษาไทย) ให้ AI เรียบเรียงประโยคใหม่ด้วย</div>
+                </div>
+                <label class="toggle"><input type="checkbox" v-model="settings.engRewrite" :disabled="!settings.aiTranslate"><div class="toggle-track"></div></label>
+              </div>
+            </div>
+
             <div :style="{opacity: settings.aiTranslate ? '1' : '0.4'}" style="display:flex;flex-direction:column;gap:8px">
               <div class="info-box purple">
                 🔤 ตรวจจับข้อความไทยอัตโนมัติ → แปลเป็นอังกฤษผ่าน AI<br>
-                ✅ แทนที่ field ต้นฉบับ · เก็บ <code>_original</code> ไว้ด้วย<br>
+                ✨ <strong style="color:#7C3AED">Dict+Polish</strong>: Dict แปลก่อน → AI เรียบเรียงให้เป็นธรรมชาติ<br>
+                ✍️ <strong style="color:#166534">ENG Rewrite</strong>: ส่ง text อังกฤษให้ AI เรียบเรียงใหม่ด้วย<br>
                 ✅ Cache ผลแปล — ไม่เรียก API ซ้ำถ้า text เดิม
               </div>
 
@@ -797,11 +822,17 @@ onMounted(() => initWorker())
           <span class="log-stat-chip dict" @click="logFilter='dict'; logPage=1" :class="{active: logFilter==='dict'}">
             📖 Dict <strong>{{ logStats.dict }}</strong>
           </span>
+          <span v-if="logStats.dictPolish > 0" class="log-stat-chip dict-polish" @click="logFilter='dict-polish'; logPage=1" :class="{active: logFilter==='dict-polish'}">
+            ✨ Polish <strong>{{ logStats.dictPolish }}</strong>
+          </span>
           <span class="log-stat-chip ai" @click="logFilter='ai'; logPage=1" :class="{active: logFilter==='ai'}">
             🤖 AI <strong>{{ logStats.ai }}</strong>
           </span>
           <span v-if="logStats.aiRetry > 0" class="log-stat-chip retry" @click="logFilter='ai-retry'; logPage=1" :class="{active: logFilter==='ai-retry'}">
             🔄 Retry <strong>{{ logStats.aiRetry }}</strong>
+          </span>
+          <span v-if="logStats.engRewrite > 0" class="log-stat-chip eng-rewrite" @click="logFilter='eng-rewrite'; logPage=1" :class="{active: logFilter==='eng-rewrite'}">
+            ✍️ ENG Rewrite <strong>{{ logStats.engRewrite }}</strong>
           </span>
           <div style="flex:1"></div>
           <button class="log-btn-dl" @click.stop="downloadLog" title="Export เป็น .tsv">⬇ Export</button>
@@ -816,7 +847,7 @@ onMounted(() => initWorker())
 
         <!-- Table -->
         <div class="log-table-wrap">
-          <table class="log-table">
+            <table class="log-table">
             <thead>
               <tr>
                 <th style="width:40px">#</th>
@@ -829,19 +860,24 @@ onMounted(() => initWorker())
               <tr v-if="filteredLog.length === 0">
                 <td colspan="4" style="text-align:center;color:var(--sub2);padding:18px;font-size:11.5px">ไม่พบรายการที่ตรงกัน</td>
               </tr>
-              <tr v-for="(entry, i) in pagedLog" :key="entry.original + entry.source"
-                :class="['log-row', 'log-row--' + entry.source]">
+              <tr v-for="(entry, i) in pagedLog" :key="entry.original + entry.source + i"
+                :class="['log-row', 'log-row--' + entry.source.replace(/-/g, '_')]">
                 <td class="log-no">{{ (logPage - 1) * 50 + i + 1 }}</td>
                 <td class="log-original">
                   <span class="log-text-cell" :title="entry.original">{{ entry.original }}</span>
                 </td>
                 <td class="log-translated">
+                  <!-- dict-polish: show dict intermediate step as faded line above -->
+                  <span v-if="entry.source === 'dict-polish' && entry.dictStep && entry.dictStep !== entry.translated"
+                    class="log-dict-step" :title="'Dict step: ' + entry.dictStep">
+                    {{ entry.dictStep }}
+                  </span>
                   <span class="log-text-cell" :title="entry.translated">{{ entry.translated }}</span>
                 </td>
                 <td class="log-source">
                   <span class="log-source-badge" :class="'badge--' + entry.source">
-                    {{ entry.source === 'dict' ? '📖' : entry.source === 'ai' ? '🤖' : '🔄' }}
-                    {{ entry.source === 'ai-retry' ? 'retry' : entry.source }}
+                    {{ entry.source === 'dict' ? '📖' : entry.source === 'ai' ? '🤖' : entry.source === 'dict-polish' ? '✨' : entry.source === 'eng-rewrite' ? '✍️' : '🔄' }}
+                    {{ { 'dict': 'dict', 'ai': 'AI', 'ai-retry': 'retry', 'dict-polish': 'polish', 'eng-rewrite': 'ENG' }[entry.source] || entry.source }}
                   </span>
                 </td>
               </tr>
@@ -926,10 +962,12 @@ header {
   background: var(--bg2); color: var(--sub);
 }
 .log-stat-chip:hover { background: var(--hover); }
-.log-stat-chip.active.all    { border-color: var(--accent);  background: var(--accent-lt);  color: var(--accent); }
-.log-stat-chip.active.dict   { border-color: #059669;        background: #ECFDF5;           color: #065F46; }
-.log-stat-chip.active.ai     { border-color: var(--accent2); background: var(--accent2-lt); color: #5B21B6; }
-.log-stat-chip.active.retry  { border-color: var(--warn);    background: var(--warn-lt);    color: #92400E; }
+.log-stat-chip.active.all         { border-color: var(--accent);  background: var(--accent-lt);  color: var(--accent); }
+.log-stat-chip.active.dict        { border-color: #059669;        background: #ECFDF5;           color: #065F46; }
+.log-stat-chip.active.dict-polish { border-color: #7C3AED;        background: #F5F3FF;           color: #5B21B6; }
+.log-stat-chip.active.ai          { border-color: var(--accent2); background: var(--accent2-lt); color: #5B21B6; }
+.log-stat-chip.active.retry       { border-color: var(--warn);    background: var(--warn-lt);    color: #92400E; }
+.log-stat-chip.active.eng-rewrite { border-color: #059669;        background: #F0FDF4;           color: #166534; }
 .log-stat-chip strong { font-weight: 700; }
 
 .log-btn-dl, .log-btn-clear {
@@ -963,9 +1001,11 @@ header {
 }
 .log-table td { padding: 6px 12px; vertical-align: middle; border-bottom: 1px solid var(--border-lt); }
 .log-row:hover td { background: var(--hover); }
-.log-row--dict td { background: rgba(5,150,105,.03); }
-.log-row--ai td   { background: rgba(139,92,246,.03); }
-.log-row--ai-retry td { background: rgba(245,158,11,.04); }
+.log-row--dict td         { background: rgba(5,150,105,.03); }
+.log-row--ai td           { background: rgba(139,92,246,.03); }
+.log-row--ai_retry td     { background: rgba(245,158,11,.04); }
+.log-row--dict_polish td  { background: rgba(124,58,237,.05); }
+.log-row--eng_rewrite td  { background: rgba(5,150,105,.05); }
 
 .log-no { color: var(--sub2); text-align: right; font-size: 10.5px; min-width: 40px; }
 .log-original  { }
@@ -974,6 +1014,13 @@ header {
   display: block; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
   color: var(--text);
+}
+.log-dict-step {
+  display: block; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  font-size: 10px; color: #9CA3AF;
+  font-style: italic; margin-bottom: 2px;
+  border-left: 2px solid #DDD6FE; padding-left: 5px;
 }
 .log-original .log-text-cell  { color: #D97706; }
 .log-translated .log-text-cell { color: #1D4ED8; }
@@ -984,9 +1031,11 @@ header {
   font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
   white-space: nowrap;
 }
-.badge--dict    { background: #ECFDF5; color: #065F46; border: 1px solid #6EE7B7; }
-.badge--ai      { background: var(--accent2-lt); color: #5B21B6; border: 1px solid #C4B5FD; }
-.badge--ai-retry { background: var(--warn-lt); color: #92400E; border: 1px solid #FCD34D; }
+.badge--dict         { background: #ECFDF5; color: #065F46; border: 1px solid #6EE7B7; }
+.badge--ai           { background: var(--accent2-lt); color: #5B21B6; border: 1px solid #C4B5FD; }
+.badge--ai-retry     { background: var(--warn-lt); color: #92400E; border: 1px solid #FCD34D; }
+.badge--dict-polish  { background: #F5F3FF; color: #5B21B6; border: 1px solid #A78BFA; }
+.badge--eng-rewrite  { background: #F0FDF4; color: #166534; border: 1px solid #86EFAC; }
 
 .log-pagination {
   display: flex; align-items: center; justify-content: center;
