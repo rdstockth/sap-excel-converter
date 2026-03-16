@@ -155,7 +155,7 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely. Keep only specific tag numbers or model names that identify a unique component (e.g. DL1, RX2, KD4-1/4A).\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes used alone) are internal identifiers — OMIT them from the translation entirely. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra details not present in the original text.\n' +
@@ -206,7 +206,7 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely. Keep only specific tag numbers or model names that identify a unique component (e.g. DL1, RX2, KD4-1/4A).\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes used alone) are internal identifiers — OMIT them from the translation entirely. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
@@ -243,7 +243,7 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely. Keep only specific tag numbers or model names that identify a unique component (e.g. DL1, RX2, KD4-1/4A).\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes used alone) are internal identifiers — OMIT them from the translation entirely. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
