@@ -7,6 +7,7 @@ export function useTranslate() {
   ]))
 
   const translateCache = ref({})
+  const polishCache = ref({})  // DictEng → PolishedEng (separate to avoid key collisions with Thai→Eng cache)
 
   const translateStatus = reactive({
     show: false,
@@ -37,7 +38,7 @@ export function useTranslate() {
     translateStatus.pct  = pct !== undefined ? Math.min(100, pct) : translateStatus.pct
     translateStatus.retryAttempt = retryAttempt
     translateStatus.maxRetry     = maxRetry
-    if (pct >= 80) {
+    if (translateStatus.pct >= 80) {
       _hideStatusTimer = setTimeout(() => { translateStatus.show = false }, 3000)
     }
   }
@@ -291,18 +292,6 @@ export function useTranslate() {
 '9. Preserve ALL symptoms and conditions from the source — never omit or merge symptoms to shorten the sentence.\n' +
 '10. Keep the sentence under 20 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 20 words only when needed to preserve all symptoms.\n' +
 '11. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
-'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
-'  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
-'    e.g. "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
-'  • "is missing", "put in", or "insert" from ใส่ (on equipment) → change to "Install" or "Add"\n' +
-'    e.g. "LC PCM item on cart is missing" → "Install LC PCM item on cart"\n' +
-'  • "install" or "attach" from ติด (without ตั้ง) → change to "is triggered", "is active", or "is stuck" based on context\n' +
-'    e.g. "install alarm" → "alarm is triggered", "install light" → "light is on"\n' +
-'  • "cut" or "lack" from ขาด → choose "is severed", "is missing", or "is broken" by context\n' +
-'  • "attach stuck" or "stick" from ติดขัด → "is jammed" or "is stuck"\n' +
-'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n' +
-'  • "malfunction", "not working", or any generic fault from สีแตก → change to "paint is cracked"\n' +
-'  • "malfunction" from สีหลุด/สีล่อน → change to "paint is peeling"\n\n' +
 'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
@@ -361,7 +350,8 @@ export function useTranslate() {
 
   // ── Run a text array through AI in batches ──
   // skipLog: true → do not push to aiLog (caller handles logging)
-  async function _runBatches(textsArray, endpoint, batchSize, maxRetries, source, apiFn, statusPrefix, contextNote, skipLog = false) {
+  // cacheTarget: ref object to write results into (default: translateCache)
+  async function _runBatches(textsArray, endpoint, batchSize, maxRetries, source, apiFn, statusPrefix, contextNote, skipLog = false, cacheTarget = null) {
     let done = 0, errors = 0
     const failedBatch = []
     const totalBatches = Math.ceil(textsArray.length / batchSize)
@@ -394,11 +384,16 @@ export function useTranslate() {
               failedBatch.push(origText)
               return
             }
-            translateCache.value[origText] = results[i]
+            const cache = cacheTarget || translateCache
+            cache.value[origText] = results[i]
             if (!skipLog) {
               aiLog.value.push({ original: origText, translated: results[i], source, batchNo: b + 1, ts: batchTs })
             }
             done++
+          } else {
+            // ── Missing/null result → queue for retry instead of silently dropping ──
+            console.warn('[Translate] Batch ' + (b+1) + ': no result for index', i, '— queued for retry:', origText)
+            failedBatch.push(origText)
           }
         })
         if (thaiLeakCount > 0) {
@@ -430,9 +425,11 @@ export function useTranslate() {
     // ── Collect texts by type ──
     const allThaiTexts = {}
     const allEngTexts  = {}
-    // engRewritePmTypes: Set of allowed PM types e.g. Set(['PM01','PM06','PM09','PM11'])
-    // null = no filter (allow all)
-    const pmFilter = engRewritePmTypes && engRewritePmTypes.size > 0 ? engRewritePmTypes : null
+    // engRewritePmTypes:
+    //   null            → no filter, allow all PM types
+    //   new Set([...])  → allow only listed PM types
+    //   new Set()       → empty set, allow none (skip all ENG rewrite)
+    const pmFilter = engRewritePmTypes !== null ? engRewritePmTypes : null
     translateFields.forEach(key => {
       const [tableType, fieldName] = key.split('::')
       ;(allTableData[tableType] || []).forEach(rec => {
@@ -445,7 +442,8 @@ export function useTranslate() {
           // ENG Rewrite PM type filter
           if (pmFilter) {
             const pmType = getPmType(rec, tableType)
-            if (pmType && !pmFilter.has(pmType)) return  // skip if PM type not in allowed list
+            // empty Set → allow none; populated Set → allow only matching types
+            if (!pmFilter.size || (pmType && !pmFilter.has(pmType))) return
           }
           allEngTexts[trimmed] = true
         }
@@ -524,14 +522,15 @@ export function useTranslate() {
       const { done, errors, failedBatch } = await _runBatches(
         polishInputs, endpoint, batchSize, maxRetries,
         'dict-polish', callAPIPolish, '✨ Dict Polish', ' · Dict hits: ' + dictResults.length,
-        true  // skipLog
+        true,        // skipLog
+        polishCache  // write into polishCache to avoid Thai-key collisions
       )
       polishDone = done; polishErrors = errors
       // Re-map: Thai original → polished English (override dict result in cache)
       // Log entry shows Thai→polished with dict result as middle step in title
       const polishTs = new Date().toISOString()
       dictResults.forEach(({ original, translated }, idx) => {
-        const polished = translateCache.value[translated]
+        const polished = polishCache.value[translated]  // read from polishCache (not translateCache)
         if (polished && polished !== translated) {
           translateCache.value[original] = polished
           aiLog.value.push({
@@ -643,6 +642,7 @@ export function useTranslate() {
   return {
     translateFields,
     translateCache,
+    polishCache,
     translateStatus,
     aiLog,
     clearLog,
