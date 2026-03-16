@@ -60,14 +60,16 @@ export function useTranslate() {
     return null  // IW47 has no direct PM type — not filtered
   }
 
-  // ── Shared fetch core ──
-  // Sends texts as { "0": text0, "1": text1, ... } so AI must return keyed object.
-  // This prevents ordering bugs where the model reorders or merges output lines.
-  async function _fetchAPI(texts, endpoint, prompt) {
-    // Build indexed input object: { "0": "...", "1": "...", ... }
-    const indexedInput = {}
-    texts.forEach((t, i) => { indexedInput[String(i)] = t })
+  // ── Build indexed input: { "0": text0, "1": text1, ... } ──
+  // Prevents ordering bugs — AI must return keyed object, we re-assemble by index.
+  function _buildIndexed(texts) {
+    const obj = {}
+    texts.forEach((t, i) => { obj[String(i)] = t })
+    return obj
+  }
 
+  // ── Shared fetch core ──
+  async function _fetchAPI(texts, endpoint, prompt) {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -127,6 +129,7 @@ export function useTranslate() {
 
   // ── API: Translate Thai → English ──
   async function callAPI(texts, endpoint) {
+    const indexedInput = _buildIndexed(texts)
     const prompt =
       'You are a facility maintenance report writer. Translate these Thai SAP work order descriptions into natural English maintenance report sentences.\n\n' +
       'Rules:\n' +
@@ -143,6 +146,7 @@ export function useTranslate() {
 
   // ── API: Polish Dict-translated English ──
   async function callAPIPolish(texts, endpoint) {
+    const indexedInput = _buildIndexed(texts)
     const prompt =
       'You are a facility maintenance report writer. The following texts are English translations from a Thai-English dictionary — they may be choppy, literal, or grammatically awkward.\n\n' +
       'Rewrite each one into a single, natural, professional maintenance report sentence.\n\n' +
@@ -159,6 +163,7 @@ export function useTranslate() {
 
   // ── API: Rewrite English → Better English ──
   async function callAPIEngRewrite(texts, endpoint) {
+    const indexedInput = _buildIndexed(texts)
     const prompt =
       'You are a facility maintenance report writer. The following texts are English SAP work order descriptions that may be abbreviated, terse, or unclear.\n\n' +
       'Rewrite each one into a single, clear, professional maintenance report sentence.\n\n' +
