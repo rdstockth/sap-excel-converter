@@ -162,7 +162,7 @@ export function useTranslate() {
 '8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
 '9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '10. Preserve ALL symptoms and conditions mentioned in the source — never omit or merge symptoms to shorten the sentence. If multiple symptoms exist, include all of them.\n' +
-'11. Keep the sentence under 15 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 15 words only when needed to preserve all symptoms.\n' +
+'11. Keep the sentence under 20 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 20 words only when needed to preserve all symptoms.\n' +
 '12. Standalone numbers (e.g. "8", "3") that appear before or after a part name with no clear unit or quantity context should be OMITTED. Keep numbers only when they clearly indicate quantity of a specific part (e.g. "2 valves", "3 pins") or are part of a code/model (e.g. DL1, RX2).\n\n' +
 'THAI WORD DISAMBIGUATION — always interpret these words by maintenance context, NOT literal dictionary meaning:\n' +
 '  • เบิก → "Requisition", "Request spare part" — this is a PARTS REQUEST action, NOT a fault description\n' +
@@ -217,7 +217,7 @@ export function useTranslate() {
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '9. Preserve ALL symptoms and conditions from the source — never omit or merge symptoms to shorten the sentence.\n' +
-'10. Keep the sentence under 15 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 15 words only when needed to preserve all symptoms.\n' +
+'10. Keep the sentence under 20 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 20 words only when needed to preserve all symptoms.\n' +
 '11. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
 'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
 '  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
@@ -257,7 +257,7 @@ export function useTranslate() {
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '9. Preserve ALL symptoms and conditions from the source — never omit or merge symptoms to shorten the sentence.\n' +
-'10. Keep the sentence under 15 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 15 words only when needed to preserve all symptoms.\n' +
+'10. Keep the sentence under 20 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 20 words only when needed to preserve all symptoms.\n' +
 '11. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
 'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
 '  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
