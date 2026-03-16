@@ -162,6 +162,25 @@ export function useTranslate() {
 '8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
 '9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
+'THAI WORD DISAMBIGUATION — always interpret these words by maintenance context, NOT literal dictionary meaning:\n' +
+'  • เบิก → "Requisition", "Request spare part" — this is a PARTS REQUEST action, NOT a fault description\n' +
+'    e.g. เบิกวาล์ว 2 ตัว = Requisition 2 valve(s) — NEVER translate as "missing" or "withdraw"\n' +
+'    Structure: "Requisition [qty] [part name/code]" or "Request [qty] [part name/code]"\n' +
+'  • ใส่ (when followed by a component/part onto equipment) → "install", "add", "fit" — this is an INSTALLATION action\n' +
+'    e.g. ใส่ Item รถเข็น = Install item on cart — NEVER translate as "is missing" or "put in"\n' +
+'    Structure: "Install [part] on/at/in [equipment/location]"\n' +
+'    NOTE: ใส่ = install/add only when acting on equipment. ใส่ in other contexts (e.g. wearing) is different.\n' +
+'  • ติด (without ตั้ง) → "is triggered", "is active", "is on", "is stuck" (e.g. ติด alarm = alarm is triggered, ติดไฟ = light is on, ติดขัด = is stuck)\n' +
+'    NEVER translate standalone ติด as "install" — use "ติดตั้ง" for installation.\n' +
+'  • ดับ → "is off", "has gone out", "is dead" (e.g. ไฟดับ = light is off / power is out)\n' +
+'  • ค้าง → "is stuck", "is frozen", "is jammed" (e.g. ค้างอยู่ = is stuck/frozen)\n' +
+'  • หลุด → "has come loose", "has detached", "has fallen off"\n' +
+'  • รั่ว → "is leaking"\n' +
+'  • ตัน → "is clogged", "is blocked"\n' +
+'  • เสีย → "is faulty", "is broken", "is not functioning"\n' +
+'  • ขาด → "is broken", "is severed", "is missing" (choose by context — NEVER use "missing" if เบิก is present)\n' +
+'  • สั่น → "is vibrating", "is shaking"\n' +
+'  • ร้อน → "is overheating" (for machines), "is hot" (for surfaces)\n\n' +
 'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be translated, write your best English approximation.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value must be an object with:\n' +
 '  "s": first 6 characters of the source input (for alignment validation)\n' +
@@ -192,7 +211,16 @@ export function useTranslate() {
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
-'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
+'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
+'  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
+'    e.g. "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
+'  • "is missing", "put in", or "insert" from ใส่ (on equipment) → change to "Install" or "Add"\n' +
+'    e.g. "LC PCM item on cart is missing" → "Install LC PCM item on cart"\n' +
+'  • "install" or "attach" from ติด (without ตั้ง) → change to "is triggered", "is active", or "is stuck" based on context\n' +
+'    e.g. "install alarm" → "alarm is triggered", "install light" → "light is on"\n' +
+'  • "cut" or "lack" from ขาด → choose "is severed", "is missing", or "is broken" by context\n' +
+'  • "attach stuck" or "stick" from ติดขัด → "is jammed" or "is stuck"\n' +
+'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n''CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -218,7 +246,16 @@ export function useTranslate() {
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
-'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
+'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
+'  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
+'    e.g. "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
+'  • "is missing", "put in", or "insert" from ใส่ (on equipment) → change to "Install" or "Add"\n' +
+'    e.g. "LC PCM item on cart is missing" → "Install LC PCM item on cart"\n' +
+'  • "install" or "attach" from ติด (without ตั้ง) → change to "is triggered", "is active", or "is stuck" based on context\n' +
+'    e.g. "install alarm" → "alarm is triggered", "install light" → "light is on"\n' +
+'  • "cut" or "lack" from ขาด → choose "is severed", "is missing", or "is broken" by context\n' +
+'  • "attach stuck" or "stick" from ติดขัด → "is jammed" or "is stuck"\n' +
+'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n''CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
