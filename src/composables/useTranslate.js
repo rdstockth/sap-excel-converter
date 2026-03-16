@@ -52,12 +52,20 @@ export function useTranslate() {
     else translateFields.add(field)
   }
 
+  // ── Get PM/MO Type from a record depending on table ──
+  function getPmType(rec, tableType) {
+    if (tableType === 'IW38' || tableType === 'ZPM02') return (rec['Order Type'] || '').trim()
+    if (tableType === 'ZPUCMN') return (rec['MO Type'] || '').trim()
+    if (tableType === 'Hours')  return (rec['MO type'] || '').trim()
+    return null  // IW47 has no direct PM type — not filtered
+  }
+
   // ── Shared fetch core ──
   async function _fetchAPI(texts, endpoint, prompt) {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 2000 })
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: Math.min(4000, Math.max(1000, texts.length * 35)) })
     })
     if (!res.ok) throw new Error('API HTTP ' + res.status)
     const data = await res.json()
@@ -234,10 +242,10 @@ export function useTranslate() {
 
   // ─────────────────────────────────────────────────
   // Main entry point
-  // options: { dictPolish: bool, engRewrite: bool }
+  // options: { dictPolish: bool, engRewrite: bool, bypassDict: bool, engRewritePmTypes: Set|null }
   // ─────────────────────────────────────────────────
   async function runTranslation(allTableData, endpoint, batchSize, maxRetries, options = {}) {
-    const { dictPolish = false, engRewrite = false } = options
+    const { dictPolish = false, engRewrite = false, bypassDict = false, engRewritePmTypes = null } = options
     _lastAllTableData = allTableData
     _failedTexts = []
     setFailedBadge(0)
@@ -247,6 +255,9 @@ export function useTranslate() {
     // ── Collect texts by type ──
     const allThaiTexts = {}
     const allEngTexts  = {}
+    // engRewritePmTypes: Set of allowed PM types e.g. Set(['PM01','PM06','PM09','PM11'])
+    // null = no filter (allow all)
+    const pmFilter = engRewritePmTypes && engRewritePmTypes.size > 0 ? engRewritePmTypes : null
     translateFields.forEach(key => {
       const [tableType, fieldName] = key.split('::')
       ;(allTableData[tableType] || []).forEach(rec => {
@@ -256,6 +267,11 @@ export function useTranslate() {
         if (hasThai(trimmed)) {
           allThaiTexts[trimmed] = true
         } else if (/[a-zA-Z]/.test(trimmed)) {
+          // ENG Rewrite PM type filter
+          if (pmFilter) {
+            const pmType = getPmType(rec, tableType)
+            if (pmType && !pmFilter.has(pmType)) return  // skip if PM type not in allowed list
+          }
           allEngTexts[trimmed] = true
         }
       })
@@ -298,25 +314,31 @@ export function useTranslate() {
       return summary
     }
 
-    setStatus('📖 Dictionary pass...', uniqueThai.length + ' unique texts', 5)
-
-    // ── Pass 1: Dictionary ──
+    // ── Pass 1: Dictionary (skip if bypassDict) ──
     resetFuzzyHits()
     let dictHit = 0
     const needAI = []
     const dictResults = [] // for polish pass
     const ts = new Date().toISOString()
-    uniqueThai.forEach(text => {
-      const result = dictTranslate(text)
-      translateCache.value[text] = result
-      if (!hasThai(result)) {
-        dictHit++
-        aiLog.value.push({ original: text, translated: result, source: 'dict', batchNo: 0, ts })
-        if (dictPolish) dictResults.push({ original: text, translated: result })
-      } else {
-        needAI.push(text)
-      }
-    })
+
+    if (bypassDict) {
+      setStatus('⚡ Bypass Dict → AI ทั้งหมด...', uniqueThai.length + ' unique texts', 5)
+      // Send all Thai texts directly to AI, skip dict entirely
+      uniqueThai.forEach(text => needAI.push(text))
+    } else {
+      setStatus('📖 Dictionary pass...', uniqueThai.length + ' unique texts', 5)
+      uniqueThai.forEach(text => {
+        const result = dictTranslate(text)
+        translateCache.value[text] = result
+        if (!hasThai(result)) {
+          dictHit++
+          aiLog.value.push({ original: text, translated: result, source: 'dict', batchNo: 0, ts })
+          if (dictPolish) dictResults.push({ original: text, translated: result })
+        } else {
+          needAI.push(text)
+        }
+      })
+    }
 
     // ── Pass 2a: Dict → AI Polish ──
     let polishDone = 0, polishErrors = 0
@@ -392,7 +414,7 @@ export function useTranslate() {
     const fuzzyHits = _fuzzyHits
     const hasErrors = aiErrors > 0 || polishErrors > 0 || engReErrors > 0
     const summary = (hasErrors ? '⚠️' : '✅') + ' เสร็จสิ้น · Applied: ' + applied +
-      ' · 📖 Dict: ' + dictHit +
+      (bypassDict ? ' · ⚡ Bypass Dict' : ' · 📖 Dict: ' + dictHit) +
       (fuzzyHits ? ' · 🔍 Fuzzy: ' + fuzzyHits : '') +
       (polishDone ? ' · ✨ Polish: ' + polishDone : '') +
       (needAI.length ? ' · 🤖 AI: ' + aiDone : '') +
