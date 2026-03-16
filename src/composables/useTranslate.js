@@ -1,13 +1,6 @@
 import { ref, reactive } from 'vue'
 import { dictTranslate, hasThai, resetFuzzyHits, _fuzzyHits } from '../utils/translateDict.js'
 
-// ── Cache namespace prefixes (Bug #9: prevent cross-mode key conflicts) ──
-const NS = { th: 'th:', en: 'en:', pl: 'pl:' }
-const cacheKey = (ns, text) => ns + text.trim()   // Bug #8: always trim
-
-// ── Symbol key for original-value snapshot (Bug #6: replaces WeakMap) ──
-const ORIG_SYM = Symbol('origValues')
-
 export function useTranslate() {
   const translateFields = reactive(new Set([
     'IW38::Description'
@@ -16,23 +9,26 @@ export function useTranslate() {
   const translateCache = ref({})
 
   const translateStatus = reactive({
-    show: false, text: '', sub: '', pct: 0,
-    retryAttempt: null, maxRetry: null, failedCount: 0, failedBadge: false
+    show: false,
+    text: '',
+    sub: '',
+    pct: 0,
+    retryAttempt: null,
+    maxRetry: null,
+    failedCount: 0,
+    failedBadge: false
   })
 
-  // Each entry: { original, translated, source, batchNo, ts, dictStep? }
+  // Each entry: { original, translated, source: 'dict'|'ai'|'ai-retry'|'dict-polish'|'eng-rewrite', batchNo, ts }
   const aiLog = ref([])
   function clearLog() { aiLog.value = [] }
 
   let _failedTexts = []
   let _lastAllTableData = null
-  let _lastCacheNs = NS.th   // namespace of last failing pass
   let _isRetrying = false
+  const _originalValues = new WeakMap()
   let _hideStatusTimer = null
 
-  // ─────────────────────────────────────────────────
-  // Status helpers
-  // ─────────────────────────────────────────────────
   function setStatus(text, sub, pct, retryAttempt = null, maxRetry = null) {
     clearTimeout(_hideStatusTimer)
     translateStatus.show = true
@@ -56,47 +52,23 @@ export function useTranslate() {
     else translateFields.add(field)
   }
 
-  // ─────────────────────────────────────────────────
-  // PM type helper
-  // ─────────────────────────────────────────────────
+  // ── Get PM/MO Type from a record depending on table ──
   function getPmType(rec, tableType) {
     if (tableType === 'IW38' || tableType === 'ZPM02') return (rec['Order Type'] || '').trim()
     if (tableType === 'ZPUCMN') return (rec['MO Type'] || '').trim()
     if (tableType === 'Hours')  return (rec['MO type'] || '').trim()
-    return null
+    return null  // IW47 has no direct PM type — not filtered
   }
 
-  // ─────────────────────────────────────────────────
-  // Build indexed input { "0": text, "1": text, ... }
-  // Prevents AI from reordering output
-  // ─────────────────────────────────────────────────
+  // ── Build indexed input: { "0": text0, "1": text1, ... } ──
+  // Prevents ordering bugs — AI must return keyed object, we re-assemble by index.
   function _buildIndexed(texts) {
     const obj = {}
     texts.forEach((t, i) => { obj[String(i)] = t })
     return obj
   }
 
-  // ─────────────────────────────────────────────────
-  // JSON extraction (Bug #7: robust markdown stripping)
-  // Extracts first { } or [ ] block from raw string
-  // ─────────────────────────────────────────────────
-  function _extractJSON(raw) {
-    // Strip <think>...</think>
-    raw = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
-    // Try to find first JSON block (object or array)
-    const jsonMatch = raw.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
-    if (jsonMatch) return jsonMatch[1]
-    // Fallback: strip ``` fences and return whatever is left
-    return raw
-      .replace(/^```[a-z]*\s*/i, '')
-      .replace(/\s*```[\s\S]*$/, '')
-      .trim()
-  }
-
-  // ─────────────────────────────────────────────────
-  // Shared fetch core
-  // Returns ordered array aligned with texts[]
-  // ─────────────────────────────────────────────────
+  // ── Shared fetch core ──
   async function _fetchAPI(texts, endpoint, prompt) {
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -109,17 +81,20 @@ export function useTranslate() {
     })
     if (!res.ok) throw new Error('API HTTP ' + res.status)
     const data = await res.json()
-    const extracted = _extractJSON(data.choices?.[0]?.message?.content || '')
+    const raw = (data.choices?.[0]?.message?.content || '')
+      .replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+      .replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/, '').trim()
 
     let parsed
     try {
-      parsed = JSON.parse(extracted)
+      parsed = JSON.parse(raw)
     } catch (e) {
-      throw new Error('API non-JSON: ' + extracted.slice(0, 120))
+      throw new Error('API returned non-JSON: ' + raw.slice(0, 120))
     }
 
-    // ── Normalise to ordered array ──
+    // ── Normalise response → ordered array ──
     if (Array.isArray(parsed)) {
+      // Fallback: AI returned plain array despite instruction — use as-is with padding
       if (parsed.length !== texts.length) {
         console.warn('[Translate] Array length mismatch: expected', texts.length, 'got', parsed.length)
         while (parsed.length < texts.length) parsed.push(null)
@@ -129,67 +104,62 @@ export function useTranslate() {
     }
 
     if (parsed && typeof parsed === 'object') {
-      // Unwrap nested wrapper e.g. { translations: {...} }
+      // Unwrap nested wrapper: { translations: {...} } or { results: {...} }
       const inner = parsed?.translations || parsed?.results || parsed?.data
-      if (inner && !Array.isArray(inner) && typeof inner === 'object') parsed = inner
-      else if (Array.isArray(inner)) {
-        while (inner.length < texts.length) inner.push(null)
-        return inner.slice(0, texts.length)
+      if (inner && typeof inner === 'object' && !Array.isArray(inner)) parsed = inner
+      else if (inner && Array.isArray(inner)) {
+        // Got array inside wrapper — recurse to array handler above
+        const arr = inner
+        while (arr.length < texts.length) arr.push(null)
+        return arr.slice(0, texts.length)
       }
-      // Re-assemble by index key (prevents swap bugs)
+
+      // Re-assemble in original index order — prevents swap bugs
       const result = texts.map((_, i) => {
         const val = parsed[String(i)] ?? parsed[i] ?? null
         return typeof val === 'string' ? val : null
       })
       const missing = result.filter(v => v === null).length
-      if (missing > 0) console.warn('[Translate] Missing', missing, 'of', texts.length, 'keyed entries')
+      if (missing > 0) console.warn('[Translate] Keyed response missing', missing, 'of', texts.length, 'entries')
       return result
     }
 
-    throw new Error('API unexpected type: ' + typeof parsed)
+    throw new Error('API returned unexpected type: ' + typeof parsed)
   }
 
-  // ─────────────────────────────────────────────────
-  // Prompt functions
-  // ─────────────────────────────────────────────────
+  // ── API: Translate Thai → English ──
   async function callAPI(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'Translate SAP maintenance descriptions into concise English. Input may be Thai, English, or mixed Thai-English.\n\n' +
-      'CRITICAL RULES:\n' +
-      '⚠️ ALL Thai words MUST be translated. NEVER output Thai characters. Output must be 100% English.\n' +
-      '⚠️ Mixed text like "Spindle สายพานขาด #7" → "Spindle belt broken #7" (translate Thai parts, keep English/codes).\n\n' +
-      'Style: short, technical. Max ~12 words. Format: [equipment] [location] [issue].\n' +
+      'Translate Thai SAP maintenance descriptions to concise English.\n\n' +
+      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
       'Examples:\n' +
       '  "ท่อน้ำชั้น2รั่ว" → "Water pipe floor 2 leaking"\n' +
       '  "แอร์ห้อง301ไม่เย็น" → "AC room 301 not cooling"\n' +
       '  "loading conveyor 4 ไม่หมุน" → "Loading conveyor 4 not rotating"\n' +
-      '  "RX2,Fima Spindle สายพานขาด #7" → "RX2 Fima Spindle belt broken #7"\n' +
-      '  "เซนเซอร์ไม่ตัด" → "Sensor not cutting"\n' +
-      '  "คลีนรูมโรง1 แอร์ร้อน" → "Cleanroom building 1 AC overheating"\n\n' +
+      '  "เซ็นเซอร์สายพาน3ขาด" → "Sensor conveyor belt 3 broken"\n\n' +
       'Rules:\n' +
-      '1. Translate ALL Thai words — no exceptions, even for short or common words.\n' +
-      '2. Keep all codes, numbers, model names, and English technical terms exactly as-is.\n' +
-      '3. Include location/line number if present.\n' +
-      '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
+      '1. Include location/line number if present in the original.\n' +
+      '2. Keep all codes, numbers, model names exactly as-is.\n' +
+      '3. No articles (a/the), no "is/are", no punctuation unless needed.\n' +
+      '4. If text is already English or mixed, clean it up without expanding.\n\n' +
       'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
       'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
+  // ── API: Polish Dict-translated English ──
   async function callAPIPolish(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'Polish these rough English maintenance descriptions. Fix grammar and word order only.\n\n' +
-      'CRITICAL: If any Thai characters appear in the input, translate them to English first, then polish.\n' +
-      '⚠️ Output must be 100% English — NEVER output Thai characters.\n\n' +
-      'Style: short, technical. Max ~12 words. Format: [equipment] [location] [issue].\n' +
+      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
       'Examples:\n' +
       '  "pipe water floor 2 leak" → "Water pipe floor 2 leaking"\n' +
       '  "air not cool room 301" → "AC room 301 not cooling"\n' +
       '  "sensor belt line 3 cut" → "Sensor conveyor belt line 3 broken"\n\n' +
       'Rules:\n' +
-      '1. Fix word order and grammar only — do NOT add detail not in the original.\n' +
+      '1. Fix word order and grammar — do NOT add detail not in the original.\n' +
       '2. Keep location/line numbers if present.\n' +
       '3. Keep all codes, numbers, model names exactly as-is.\n' +
       '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
@@ -198,22 +168,20 @@ export function useTranslate() {
     return _fetchAPI(texts, endpoint, prompt)
   }
 
+  // ── API: Rewrite English → Better English ──
   async function callAPIEngRewrite(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'Rewrite these English SAP maintenance descriptions to be concise and clear.\n\n' +
-      'CRITICAL: If any Thai characters appear in the input, translate them to English first, then rewrite.\n' +
-      '⚠️ Output must be 100% English — NEVER output Thai characters.\n\n' +
-      'Style: short, technical. Max ~12 words. Format: [equipment] [location] [issue].\n' +
+      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
       'Examples:\n' +
       '  "pipe water top 2 leak" → "Water pipe floor 2 leaking"\n' +
       '  "loading conveyor 4 not spin" → "Loading conveyor 4 not rotating"\n' +
-      '  "RX2 Spindle สายพานขาด #7" → "RX2 Spindle belt broken #7"\n' +
       '  "M/C 3 tank 2.2 error" → "M/C 3 tank 2.2 error" (already clear — keep as-is)\n\n' +
       'Rules:\n' +
       '1. Keep location, line numbers, and equipment context from the original.\n' +
       '2. Keep all codes, numbers, model names exactly as-is.\n' +
-      '3. Translate any remaining Thai words — never leave Thai in output.\n' +
+      '3. If already clear and short, return with minimal change.\n' +
       '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
       'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
       'Input:\n' + JSON.stringify(indexedInput)
@@ -230,25 +198,18 @@ export function useTranslate() {
           await new Promise(r => setTimeout(r, delayMs))
         }
         return await (apiFn || callAPI)(texts, endpoint)
-      } catch (e) {
-        lastError = e
-        console.warn('[Translate]', batchLabel, 'attempt', attempt + 1, 'failed:', e.message)
-      }
+      } catch (e) { lastError = e; console.warn('[Translate]', batchLabel, 'attempt', attempt + 1, 'failed:', e.message) }
     }
     throw lastError
   }
 
-  // ─────────────────────────────────────────────────
-  // Snapshot / apply / restore originals
-  // Bug #6: use Symbol property on record instead of WeakMap
-  // so references survive even if caller recreates table arrays
-  // ─────────────────────────────────────────────────
   function snapshotOriginals(allTableData) {
     translateFields.forEach(key => {
       const [tableType, fieldName] = key.split('::')
       ;(allTableData[tableType] || []).forEach(rec => {
-        if (!rec[ORIG_SYM]) rec[ORIG_SYM] = {}
-        if (!(fieldName in rec[ORIG_SYM])) rec[ORIG_SYM][fieldName] = rec[fieldName]
+        if (!_originalValues.has(rec)) _originalValues.set(rec, {})
+        const snap = _originalValues.get(rec)
+        if (!(fieldName in snap)) snap[fieldName] = rec[fieldName]
       })
     })
   }
@@ -260,10 +221,7 @@ export function useTranslate() {
       ;(allTableData[tableType] || []).forEach(rec => {
         const val = rec[fieldName]
         if (!val || typeof val !== 'string' || !val.trim()) return
-        const k = cacheKey(NS.th, val)
-        const tr = translateCache.value[k] ??
-          translateCache.value[cacheKey(NS.en, val)] ??
-          translateCache.value[cacheKey(NS.pl, val)]
+        const tr = translateCache.value[String(val).trim()]
         if (tr) { rec[fieldName] = tr; applied++ }
       })
     })
@@ -274,30 +232,22 @@ export function useTranslate() {
     translateFields.forEach(key => {
       const [tableType, fieldName] = key.split('::')
       ;(allTableData[tableType] || []).forEach(rec => {
-        const snap = rec[ORIG_SYM]
+        const snap = _originalValues.get(rec)
         if (snap && fieldName in snap) rec[fieldName] = snap[fieldName]
       })
     })
   }
 
-  // ─────────────────────────────────────────────────
-  // Run batches through AI
-  // Bug #2: use `processed` counter for accurate progress display
-  // Bug #1: returns resultsByInputIdx Map for callers that need index-based mapping
-  // skipLog: caller handles logging manually (used by polish pass)
-  // ─────────────────────────────────────────────────
-  async function _runBatches(textsArray, endpoint, batchSize, maxRetries, source, apiFn, statusPrefix, contextNote, skipLog = false, cacheNs = NS.th) {
-    let done = 0, processed = 0, errors = 0
+  // ── Run a text array through AI in batches ──
+  // skipLog: true → do not push to aiLog (caller handles logging)
+  async function _runBatches(textsArray, endpoint, batchSize, maxRetries, source, apiFn, statusPrefix, contextNote, skipLog = false) {
+    let done = 0, errors = 0
     const failedBatch = []
     const totalBatches = Math.ceil(textsArray.length / batchSize)
-    // Bug #1: store results indexed by global position in textsArray
-    const resultsByInputIdx = new Map()
-
     for (let b = 0; b < totalBatches; b++) {
       const batch = textsArray.slice(b * batchSize, (b + 1) * batchSize)
-      // Bug #2: show processed count, not done count
       setStatus(
-        statusPrefix + ' (' + (processed + batch.length) + '/' + textsArray.length + ')',
+        statusPrefix + ' (' + (done + batch.length) + '/' + textsArray.length + ')',
         'Batch ' + (b+1) + '/' + totalBatches + (contextNote || ''),
         10 + Math.round((b / totalBatches) * 85)
       )
@@ -314,14 +264,10 @@ export function useTranslate() {
         translateStatus.retryAttempt = null
         const batchTs = new Date().toISOString()
         batch.forEach((origText, i) => {
-          const globalIdx = b * batchSize + i
-          const result = results[i]
-          if (result) {
-            // Bug #8: normalize key on set
-            translateCache.value[cacheKey(cacheNs, origText)] = result
-            resultsByInputIdx.set(globalIdx, result)
+          if (results[i]) {
+            translateCache.value[origText] = results[i]
             if (!skipLog) {
-              aiLog.value.push({ original: origText, translated: result, source, batchNo: b + 1, ts: batchTs })
+              aiLog.value.push({ original: origText, translated: results[i], source, batchNo: b + 1, ts: batchTs })
             }
             done++
           }
@@ -329,17 +275,16 @@ export function useTranslate() {
       } catch (e) {
         console.error('Batch ' + (b+1) + ' failed:', e)
         errors++
-        batch.forEach(t => failedBatch.push({ text: t, ns: cacheNs }))
+        batch.forEach(t => failedBatch.push(t))
       }
-      processed += batch.length  // Bug #2: always increment by batch size
       if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 300))
     }
-    return { done, processed, errors, failedBatch, resultsByInputIdx }
+    return { done, errors, failedBatch }
   }
 
   // ─────────────────────────────────────────────────
   // Main entry point
-  // options: { dictPolish, engRewrite, bypassDict, engRewritePmTypes }
+  // options: { dictPolish: bool, engRewrite: bool, bypassDict: bool, engRewritePmTypes: Set|null }
   // ─────────────────────────────────────────────────
   async function runTranslation(allTableData, endpoint, batchSize, maxRetries, options = {}) {
     const { dictPolish = false, engRewrite = false, bypassDict = false, engRewritePmTypes = null } = options
@@ -349,58 +294,61 @@ export function useTranslate() {
 
     snapshotOriginals(allTableData)
 
-    // ── Collect texts ──
-    // Bug #5: text with any Thai → Thai path (handles mixed like "pump เสีย")
+    // ── Collect texts by type ──
     const allThaiTexts = {}
     const allEngTexts  = {}
+    // engRewritePmTypes: Set of allowed PM types e.g. Set(['PM01','PM06','PM09','PM11'])
+    // null = no filter (allow all)
     const pmFilter = engRewritePmTypes && engRewritePmTypes.size > 0 ? engRewritePmTypes : null
-
     translateFields.forEach(key => {
       const [tableType, fieldName] = key.split('::')
       ;(allTableData[tableType] || []).forEach(rec => {
         const val = rec[fieldName]
         if (!val || typeof val !== 'string' || !val.trim()) return
-        const trimmed = val.trim()
+        const trimmed = String(val).trim()
         if (hasThai(trimmed)) {
-          // Bug #5: mixed text (Thai + ENG) → Thai path for translation
           allThaiTexts[trimmed] = true
         } else if (/[a-zA-Z]/.test(trimmed)) {
+          // ENG Rewrite PM type filter
           if (pmFilter) {
             const pmType = getPmType(rec, tableType)
-            if (pmType && !pmFilter.has(pmType)) return
+            if (pmType && !pmFilter.has(pmType)) return  // skip if PM type not in allowed list
           }
           allEngTexts[trimmed] = true
         }
       })
     })
 
-    // Bug #8: filter by namespaced cache key
-    const uniqueThai = Object.keys(allThaiTexts).filter(t => !translateCache.value[cacheKey(NS.th, t)])
-    const uniqueEng  = Object.keys(allEngTexts).filter(t => !translateCache.value[cacheKey(NS.en, t)])
-    const hasTh = Object.keys(allThaiTexts).length > 0
+    const uniqueThai = Object.keys(allThaiTexts).filter(t => !translateCache.value[t])
+    const uniqueEng  = Object.keys(allEngTexts).filter(t => !translateCache.value[t])
+    const hasTh  = Object.keys(allThaiTexts).length > 0
 
-    // ── ENG-only rewrite mode ──
+    // ── ENG-only rewrite mode (no Thai texts at all) ──
     if (engRewrite && !hasTh) {
       if (!uniqueEng.length) {
         const applied = applyTranslations(allTableData)
         return '✅ ENG Rewrite (จาก cache) · Applied: ' + applied
       }
-      if (!endpoint) { setStatus('⚠️ ' + uniqueEng.length + ' ENG texts — ใส่ Endpoint ก่อน', '', 50); return }
+      if (!endpoint) {
+        setStatus('⚠️ ' + uniqueEng.length + ' ENG texts — ใส่ Endpoint ก่อน', '', 50)
+        return
+      }
       setStatus('✍️ ENG → AI Rewrite...', uniqueEng.length + ' unique texts', 5)
       const { done, errors, failedBatch } = await _runBatches(
         uniqueEng, endpoint, batchSize, maxRetries,
-        'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length,
-        false, NS.en
+        'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length
       )
-      if (failedBatch.length) { failedBatch.forEach(item => _failedTexts.push(item)); setFailedBadge(_failedTexts.length) }
+      if (failedBatch.length) { failedBatch.forEach(t => _failedTexts.push(t)); setFailedBadge(_failedTexts.length) }
       const applied = applyTranslations(allTableData)
       const summary = (errors ? '⚠️' : '✅') + ' ENG Rewrite · ' + done + ' rewritten · Applied: ' + applied
       setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', errors ? 80 : 100)
       return summary
     }
 
+    // ── No Thai texts ──
     if (!hasTh && !engRewrite) return '✅ ไม่พบข้อความภาษาไทยในช่องที่เลือก'
 
+    // ── Cache-only shortcut ──
     if (!uniqueThai.length) {
       const applied = applyTranslations(allTableData)
       const summary = '✅ แปลสำเร็จ (จาก cache) ' + applied + ' fields · Cache: ' + Object.keys(translateCache.value).length + ' texts'
@@ -408,22 +356,22 @@ export function useTranslate() {
       return summary
     }
 
-    // ── Pass 1: Dictionary ──
+    // ── Pass 1: Dictionary (skip if bypassDict) ──
     resetFuzzyHits()
     let dictHit = 0
     const needAI = []
-    const dictResults = []
+    const dictResults = [] // for polish pass
     const ts = new Date().toISOString()
 
     if (bypassDict) {
       setStatus('⚡ Bypass Dict → AI ทั้งหมด...', uniqueThai.length + ' unique texts', 5)
+      // Send all Thai texts directly to AI, skip dict entirely
       uniqueThai.forEach(text => needAI.push(text))
     } else {
       setStatus('📖 Dictionary pass...', uniqueThai.length + ' unique texts', 5)
       uniqueThai.forEach(text => {
         const result = dictTranslate(text)
-        // Bug #8: store with namespace
-        translateCache.value[cacheKey(NS.th, text)] = result
+        translateCache.value[text] = result
         if (!hasThai(result)) {
           dictHit++
           aiLog.value.push({ original: text, translated: result, source: 'dict', batchNo: 0, ts })
@@ -435,34 +383,45 @@ export function useTranslate() {
     }
 
     // ── Pass 2a: Dict → AI Polish ──
-    // Bug #1: use resultsByInputIdx instead of cache-key lookup
     let polishDone = 0, polishErrors = 0
     if (dictPolish && dictResults.length && endpoint) {
       setStatus('✨ Dict → AI Polish...', dictResults.length + ' dict-translated texts', 12)
       const polishInputs = dictResults.map(d => d.translated)
-      const { done, errors, failedBatch, resultsByInputIdx } = await _runBatches(
+      // skipLog=true — we log manually below with Thai original as `original`
+      const { done, errors, failedBatch } = await _runBatches(
         polishInputs, endpoint, batchSize, maxRetries,
         'dict-polish', callAPIPolish, '✨ Dict Polish', ' · Dict hits: ' + dictResults.length,
-        true, NS.pl  // skipLog=true, polish namespace
+        true  // skipLog
       )
       polishDone = done; polishErrors = errors
+      // Re-map: Thai original → polished English (override dict result in cache)
+      // Log entry shows Thai→polished with dict result as middle step in title
       const polishTs = new Date().toISOString()
-      // Bug #1: map by index — no intermediate cache key lookup
       dictResults.forEach(({ original, translated }, idx) => {
-        const polished = resultsByInputIdx.get(idx)
-        const final = (polished && polished !== translated) ? polished : translated
-        // Store under Thai original key (namespace th:)
-        translateCache.value[cacheKey(NS.th, original)] = final
-        aiLog.value.push({
-          original,
-          translated: final,
-          dictStep: translated,
-          source: 'dict-polish',
-          batchNo: Math.floor(idx / batchSize) + 1,
-          ts: polishTs
-        })
+        const polished = translateCache.value[translated]
+        if (polished && polished !== translated) {
+          translateCache.value[original] = polished
+          aiLog.value.push({
+            original,
+            translated: polished,
+            dictStep: translated,   // store dict intermediate for display
+            source: 'dict-polish',
+            batchNo: Math.floor(idx / batchSize) + 1,
+            ts: polishTs
+          })
+        } else {
+          // Polish didn't improve — keep dict result, log as dict-polish with same text
+          aiLog.value.push({
+            original,
+            translated: translated,
+            dictStep: translated,
+            source: 'dict-polish',
+            batchNo: Math.floor(idx / batchSize) + 1,
+            ts: polishTs
+          })
+        }
       })
-      if (failedBatch.length) failedBatch.forEach(item => _failedTexts.push(item))
+      if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
     }
 
     // ── Pass 2b: AI Translate (remaining Thai) ──
@@ -471,26 +430,24 @@ export function useTranslate() {
       const { done, errors, failedBatch } = await _runBatches(
         needAI, endpoint, batchSize, maxRetries,
         'ai', callAPI, '🤖 AI pass',
-        ' · Dict hit: ' + dictHit + (maxRetries > 0 ? ' · Max retry: ' + maxRetries : ''),
-        false, NS.th
+        ' · Dict hit: ' + dictHit + (maxRetries > 0 ? ' · Max retry: ' + maxRetries : '')
       )
       aiDone = done; aiErrors = errors
-      if (failedBatch.length) failedBatch.forEach(item => _failedTexts.push(item))
+      if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
     } else if (needAI.length && !endpoint) {
       setStatus('⚠️ ' + needAI.length + ' ข้อความยังเหลือ — ใส่ Endpoint เพื่อใช้ AI', '', 50)
     }
 
-    // ── Pass 3: ENG → AI Rewrite ──
+    // ── Pass 3: ENG → AI Rewrite (combined with TH mode) ──
     let engReDone = 0, engReErrors = 0
     if (engRewrite && uniqueEng.length && endpoint) {
       setStatus('✍️ ENG → AI Rewrite...', uniqueEng.length + ' ENG texts', 88)
       const { done, errors, failedBatch } = await _runBatches(
         uniqueEng, endpoint, batchSize, maxRetries,
-        'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length,
-        false, NS.en
+        'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length
       )
       engReDone = done; engReErrors = errors
-      if (failedBatch.length) failedBatch.forEach(item => _failedTexts.push(item))
+      if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
     }
 
     const applied = applyTranslations(allTableData)
@@ -509,67 +466,58 @@ export function useTranslate() {
     return summary
   }
 
-  // ─────────────────────────────────────────────────
-  // Retry failed batches
-  // Bug #3: uses explicit 'ai-retry' source (separate from normal 'ai')
-  // ─────────────────────────────────────────────────
-  async function retryFailed(endpoint, batchSize, maxRetries, cacheNs = NS.th) {
+  async function retryFailed(endpoint, batchSize, maxRetries) {
     if (!_failedTexts.length) return
-    if (_isRetrying) { console.warn('[Translate] retryFailed already in progress'); return }
+    if (_isRetrying) { console.warn('[Translate] retryFailed already in progress, skipping.'); return }
     _isRetrying = true
-    // _failedTexts stores { text, ns } objects
-    const retryItems = _failedTexts.slice()
+    const retryTexts = _failedTexts.slice()
     _failedTexts = []
     setFailedBadge(0)
-    const totalBatches = Math.ceil(retryItems.length / batchSize)
-    let retryDone = 0, processed = 0, retryErrors = 0
+    const totalBatches = Math.ceil(retryTexts.length / batchSize)
+    let retryDone = 0, retryErrors = 0
     try {
       for (let b = 0; b < totalBatches; b++) {
-        const batchItems = retryItems.slice(b * batchSize, (b + 1) * batchSize)
-        const batchTexts = batchItems.map(it => it.text)
-        setStatus(
-          '🔄 Retrying (' + (processed + batchItems.length) + '/' + retryItems.length + ')',
-          'Retry batch ' + (b+1) + '/' + totalBatches,
-          10 + Math.round((b / totalBatches) * 85)
-        )
+        const batch = retryTexts.slice(b * batchSize, (b + 1) * batchSize)
+        setStatus('🔄 Retrying ' + (retryDone + batch.length) + '/' + retryTexts.length, 'Retry batch ' + (b+1) + '/' + totalBatches, 10 + Math.round((b / totalBatches) * 85))
         try {
-          const results = await callAPIWithRetry(
-            batchTexts, endpoint, maxRetries, 'Retry batch '+(b+1)+'/'+totalBatches,
-            (attempt, max, delayMs) => setStatus(
-              '⏳ รอ '+(delayMs/1000).toFixed(0)+'s...',
-              'Retry batch '+(b+1)+'/'+totalBatches,
-              10+Math.round((b/totalBatches)*85), attempt, max
-            )
+          const results = await callAPIWithRetry(batch, endpoint, maxRetries, 'Retry batch '+(b+1)+'/'+totalBatches,
+            (attempt, max, delayMs) => setStatus('⏳ รอ '+(delayMs/1000).toFixed(0)+'s...', 'Retry batch '+(b+1)+'/'+totalBatches, 10+Math.round((b/totalBatches)*85), attempt, max)
           )
           translateStatus.retryAttempt = null
           const batchTs = new Date().toISOString()
-          batchItems.forEach(({ text: origText, ns: itemNs }, i) => {
+          batch.forEach((origText, i) => {
             if (results[i]) {
-              translateCache.value[cacheKey(itemNs, origText)] = results[i]
+              translateCache.value[origText] = results[i]
               aiLog.value.push({ original: origText, translated: results[i], source: 'ai-retry', batchNo: b + 1, ts: batchTs })
               retryDone++
             }
           })
         } catch (e) {
           retryErrors++
-          batchItems.forEach(item => _failedTexts.push(item))
+          batch.forEach(t => _failedTexts.push(t))
         }
-        processed += batchItems.length
         if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 300))
       }
     } finally { _isRetrying = false }
-
     const applied = _lastAllTableData ? applyTranslations(_lastAllTableData) : 0
     if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
     const msg = (retryErrors ? '⚠️' : '✅') + ' Retry เสร็จ · สำเร็จ: ' + retryDone +
-      (retryErrors ? ' · ยังเหลือ: ' + (retryItems.length - retryDone) : '') + ' · Applied: ' + applied
+      (retryErrors ? ' · ยังเหลือ: ' + (retryTexts.length - retryDone) : '') + ' · Applied: ' + applied
     setStatus(msg, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', retryErrors ? 80 : 100)
     return msg
   }
 
   return {
-    translateFields, translateCache, translateStatus, aiLog, clearLog,
-    toggleField, runTranslation, retryFailed, applyTranslations, restoreOriginals,
+    translateFields,
+    translateCache,
+    translateStatus,
+    aiLog,
+    clearLog,
+    toggleField,
+    runTranslation,
+    retryFailed,
+    applyTranslations,
+    restoreOriginals,
     hasFailed: () => _failedTexts.length > 0
   }
 }
