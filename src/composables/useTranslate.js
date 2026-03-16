@@ -130,16 +130,24 @@ export function useTranslate() {
   async function callAPI(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a facility maintenance report writer. Translate these Thai SAP work order descriptions into natural English maintenance report sentences.\n\n' +
-      'Rules:\n' +
-      '1. Write complete, natural sentences — NOT word-for-word translations.\n' +
-      '2. Use "The [component] in/at the [location] is [symptom]." structure when applicable.\n' +
-      '3. For absence/flow issues use "has no water flow" not "is not flowing".\n' +
-      '4. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
-      '5. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
-      '6. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
-      'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
-      'Input:\n' + JSON.stringify(indexedInput)
+      'You are a facility maintenance report writer for SAP work orders.\n\n' +
+'Task:\n' +
+'Translate Thai maintenance issue descriptions into clear, natural English maintenance report sentences.\n\n' +
+'Guidelines:\n' +
+'1. Write natural maintenance-report sentences — NOT word-for-word translations.\n' +
+'2. Prefer this structure when applicable: "The [component] in/at/on the [location] is [symptom]."\n' +
+'3. Use correct prepositions:\n' +
+'   - Rooms / areas / buildings → "in the"\n' +
+'   - Floors / ceilings / walls → "on the"\n' +
+'   - Equipment / machines / positions → "at the"\n' +
+'4. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
+'5. Preserve all equipment codes, model numbers, and identifiers exactly as provided.\n' +
+'6. Keep sentences concise and professional (1 sentence preferred).\n' +
+'7. Use present tense to describe the current condition.\n' +
+'8. Do not add assumptions or extra details not present in the original text.\n' +
+'9. When describing faults, prefer standard maintenance terms such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
+'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
@@ -147,16 +155,23 @@ export function useTranslate() {
   async function callAPIPolish(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a facility maintenance report writer. The following texts are English translations from a Thai-English dictionary — they may be choppy, literal, or grammatically awkward.\n\n' +
-      'Rewrite each one into a single, natural, professional maintenance report sentence.\n\n' +
-      'Rules:\n' +
-      '1. Fix grammar, word order, and phrasing to sound natural.\n' +
-      '2. Use "The [component] in/at the [location] is [symptom]." structure when applicable.\n' +
-      '3. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
-      '4. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
-      '5. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
-      'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
-      'Input:\n' + JSON.stringify(indexedInput)
+      'You are a facility maintenance report writer for SAP work orders. The following texts are English translations produced from a Thai-English dictionary and may be literal, fragmented, or grammatically awkward.\n\n' +
+'Task:\n' +
+'Rewrite each item into a clear, natural, professional maintenance report sentence.\n\n' +
+'Guidelines:\n' +
+'1. Correct grammar, word order, and phrasing so the sentence reads naturally in a maintenance report.\n' +
+'2. Prefer this structure when applicable: "The [component] in/at/on the [location] is [symptom]."\n' +
+'3. Use correct prepositions:\n' +
+'   - Rooms / areas / buildings → "in the"\n' +
+'   - Floors / ceilings / walls → "on the"\n' +
+'   - Equipment / machines / positions → "at the"\n' +
+'4. Preserve all equipment codes, model numbers, and identifiers exactly as provided.\n' +
+'5. Keep the sentence concise and professional (1 sentence preferred).\n' +
+'6. Use present tense to describe the current condition.\n' +
+'7. Do not add assumptions or extra information not present in the original text.\n' +
+'8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
+'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
@@ -164,17 +179,24 @@ export function useTranslate() {
   async function callAPIEngRewrite(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a facility maintenance report writer. The following texts are English SAP work order descriptions that may be abbreviated, terse, or unclear.\n\n' +
-      'Rewrite each one into a single, clear, professional maintenance report sentence.\n\n' +
-      'Rules:\n' +
-      '1. Expand abbreviations and improve clarity while keeping the original meaning.\n' +
-      '2. Use "The [component] in/at the [location] is/has [symptom/issue]." structure when applicable.\n' +
-      '3. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
-      '4. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
-      '5. If the text is already clear and complete, keep it with only minor improvements.\n' +
-      '6. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
-      'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
-      'Input:\n' + JSON.stringify(indexedInput)
+      'You are a facility maintenance report writer for SAP work orders. The following texts are English SAP work order descriptions that may be abbreviated, terse, or unclear.\n\n' +
+'Task:\n' +
+'Rewrite each item into a clear, natural, professional maintenance report sentence.\n\n' +
+'Guidelines:\n' +
+'1. Expand abbreviations where necessary and improve clarity while preserving the original meaning.\n' +
+'2. Prefer this structure when applicable: "The [component] in/at/on the [location] is/has [symptom or issue]."\n' +
+'3. Use correct prepositions:\n' +
+'   - Rooms / areas / buildings → "in the"\n' +
+'   - Floors / ceilings / walls → "on the"\n' +
+'   - Equipment / machines / positions → "at the"\n' +
+'4. Preserve all equipment codes, tag numbers, model names, and identifiers exactly as provided.\n' +
+'5. If the original text is already clear and complete, keep it with only minor grammatical improvements.\n' +
+'6. Keep the sentence concise and professional (1 sentence preferred).\n' +
+'7. Use present tense to describe the current condition.\n' +
+'8. Do not add assumptions or extra details not present in the original text.\n' +
+'9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
+'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
