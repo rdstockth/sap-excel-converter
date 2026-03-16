@@ -161,8 +161,9 @@ export function useTranslate() {
 '7. Do not add assumptions or extra details not present in the original text.\n' +
 '8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
 '9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-'10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n' +
-'11. Standalone numbers (e.g. "8", "3") that appear before or after a part name with no clear unit or quantity context should be OMITTED. Keep numbers only when they clearly indicate quantity of a specific part (e.g. "2 valves", "3 pins") or are part of a code/model (e.g. DL1, RX2).\n\n' +
+'10. Preserve ALL symptoms and conditions mentioned in the source — never omit or merge symptoms to shorten the sentence. If multiple symptoms exist, include all of them.\n' +
+'11. Keep the sentence under 15 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 15 words only when needed to preserve all symptoms.\n' +
+'12. Standalone numbers (e.g. "8", "3") that appear before or after a part name with no clear unit or quantity context should be OMITTED. Keep numbers only when they clearly indicate quantity of a specific part (e.g. "2 valves", "3 pins") or are part of a code/model (e.g. DL1, RX2).\n\n' +
 'THAI WORD DISAMBIGUATION — always interpret these words by maintenance context, NOT literal dictionary meaning:\n' +
 '  • เบิก → "Requisition", "Request spare part" — this is a PARTS REQUEST action, NOT a fault description\n' +
 '    e.g. เบิกวาล์ว 2 ตัว = Requisition 2 valve(s) — NEVER translate as "missing" or "withdraw"\n' +
@@ -181,7 +182,11 @@ export function useTranslate() {
 '  • เสีย → "is faulty", "is broken", "is not functioning"\n' +
 '  • ขาด → "is broken", "is severed", "is missing" (choose by context — NEVER use "missing" if เบิก is present)\n' +
 '  • สั่น → "is vibrating", "is shaking"\n' +
-'  • ร้อน → "is overheating" (for machines), "is hot" (for surfaces)\n\n' +
+'  • ร้อน → "is overheating" (for machines), "is hot" (for surfaces)\n' +
+'  • สีแตก → "paint is cracked" or "paint is chipping" — NEVER translate as malfunction or generic fault\n' +
+'  • สีหลุด / สีล่อน → "paint is peeling" or "paint has come off"\n' +
+'  • แตก (on non-paint surface) → "is cracked"\n' +
+'  • บิ่น → "is chipped"\n\n' +
 'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be translated, write your best English approximation.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value must be an object with:\n' +
 '  "s": first 6 characters of the source input (for alignment validation)\n' +
@@ -211,8 +216,9 @@ export function useTranslate() {
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-'9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n' +
-'10. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
+'9. Preserve ALL symptoms and conditions from the source — never omit or merge symptoms to shorten the sentence.\n' +
+'10. Keep the sentence under 15 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 15 words only when needed to preserve all symptoms.\n' +
+'11. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
 'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
 '  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
 '    e.g. "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
@@ -222,7 +228,9 @@ export function useTranslate() {
 '    e.g. "install alarm" → "alarm is triggered", "install light" → "light is on"\n' +
 '  • "cut" or "lack" from ขาด → choose "is severed", "is missing", or "is broken" by context\n' +
 '  • "attach stuck" or "stick" from ติดขัด → "is jammed" or "is stuck"\n' +
-'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n' +
+'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n' +
+'  • "malfunction", "not working", or any generic fault from สีแตก → change to "paint is cracked"\n' +
+'  • "malfunction" from สีหลุด/สีล่อน → change to "paint is peeling"\n\n' +
 'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
@@ -248,8 +256,9 @@ export function useTranslate() {
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-'9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n' +
-'10. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
+'9. Preserve ALL symptoms and conditions from the source — never omit or merge symptoms to shorten the sentence.\n' +
+'10. Keep the sentence under 15 words if possible, but NEVER sacrifice a symptom to meet this limit. Exceed 15 words only when needed to preserve all symptoms.\n' +
+'11. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
 'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
 '  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
 '    e.g. "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
@@ -259,7 +268,9 @@ export function useTranslate() {
 '    e.g. "install alarm" → "alarm is triggered", "install light" → "light is on"\n' +
 '  • "cut" or "lack" from ขาด → choose "is severed", "is missing", or "is broken" by context\n' +
 '  • "attach stuck" or "stick" from ติดขัด → "is jammed" or "is stuck"\n' +
-'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n' +
+'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n' +
+'  • "malfunction", "not working", or any generic fault from สีแตก → change to "paint is cracked"\n' +
+'  • "malfunction" from สีหลุด/สีล่อน → change to "paint is peeling"\n\n' +
 'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
