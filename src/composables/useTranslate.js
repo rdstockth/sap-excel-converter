@@ -220,7 +220,8 @@ export function useTranslate() {
 '    e.g. "install alarm" → "alarm is triggered", "install light" → "light is on"\n' +
 '  • "cut" or "lack" from ขาด → choose "is severed", "is missing", or "is broken" by context\n' +
 '  • "attach stuck" or "stick" from ติดขัด → "is jammed" or "is stuck"\n' +
-'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n''CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
+'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n' +
+'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -255,7 +256,8 @@ export function useTranslate() {
 '    e.g. "install alarm" → "alarm is triggered", "install light" → "light is on"\n' +
 '  • "cut" or "lack" from ขาด → choose "is severed", "is missing", or "is broken" by context\n' +
 '  • "attach stuck" or "stick" from ติดขัด → "is jammed" or "is stuck"\n' +
-'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n''CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
+'  • "extinguish" or "turn off" from ดับ in power context → "power is out" or "is off"\n\n' +
+'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
