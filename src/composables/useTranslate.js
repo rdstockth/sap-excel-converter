@@ -24,7 +24,8 @@ export function useTranslate() {
   const aiLog = ref([])
   function clearLog() { aiLog.value = [] }
 
-  let _failedTexts = []
+  let _failedTexts = []        // Thai texts that failed AI translation
+  let _failedPolishTexts = []  // Dict-English texts that failed polish pass
   let _lastAllTableData = null
   let _isRetrying = false
   const _originalValues = new WeakMap()
@@ -46,6 +47,10 @@ export function useTranslate() {
   function setFailedBadge(count) {
     translateStatus.failedCount = count
     translateStatus.failedBadge = count > 0
+  }
+
+  function _totalFailed() {
+    return _failedTexts.length + _failedPolishTexts.length
   }
 
   function toggleField(field) {
@@ -418,6 +423,7 @@ export function useTranslate() {
     const { dictPolish = false, engRewrite = false, bypassDict = false, engRewritePmTypes = null } = options
     _lastAllTableData = allTableData
     _failedTexts = []
+    _failedPolishTexts = []
     setFailedBadge(0)
 
     snapshotOriginals(allTableData)
@@ -479,8 +485,8 @@ export function useTranslate() {
     // ── No Thai texts ──
     if (!hasTh && !engRewrite) return '✅ ไม่พบข้อความภาษาไทยในช่องที่เลือก'
 
-    // ── Cache-only shortcut ──
-    if (!uniqueThai.length) {
+    // ── Cache-only shortcut — only when ENG rewrite has nothing new to process ──
+    if (!uniqueThai.length && !(engRewrite && uniqueEng.length)) {
       const applied = applyTranslations(allTableData)
       const summary = '✅ แปลสำเร็จ (จาก cache) ' + applied + ' fields · Cache: ' + Object.keys(translateCache.value).length + ' texts'
       setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', 100)
@@ -553,7 +559,7 @@ export function useTranslate() {
           })
         }
       })
-      if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
+      if (failedBatch.length) failedBatch.forEach(t => _failedPolishTexts.push(t))
     }
 
     // ── Pass 2b: AI Translate (remaining Thai) ──
@@ -583,7 +589,7 @@ export function useTranslate() {
     }
 
     const applied = applyTranslations(allTableData)
-    if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
+    if (_totalFailed() > 0) setFailedBadge(_totalFailed())
 
     const fuzzyHits = _fuzzyHits
     const hasErrors = aiErrors > 0 || polishErrors > 0 || engReErrors > 0
@@ -598,43 +604,89 @@ export function useTranslate() {
     return summary
   }
 
+  // ── Helper: run one retry pass for a given texts array + apiFn + cacheTarget ──
+  async function _retryQueue(texts, label, endpoint, batchSize, maxRetries, apiFn, cacheTarget, logSource, totalForStatus) {
+    const totalBatches = Math.ceil(texts.length / batchSize)
+    let done = 0, errors = 0
+    const stillFailed = []
+    for (let b = 0; b < totalBatches; b++) {
+      const batch = texts.slice(b * batchSize, (b + 1) * batchSize)
+      setStatus('🔄 ' + label + ' (' + (done + batch.length) + '/' + totalForStatus + ')',
+        'Batch ' + (b+1) + '/' + totalBatches, 10 + Math.round((b / totalBatches) * 75))
+      try {
+        const results = await callAPIWithRetry(batch, endpoint, maxRetries, label + ' batch '+(b+1),
+          (attempt, max, delayMs) => setStatus('⏳ รอ '+(delayMs/1000).toFixed(0)+'s...', label+' batch '+(b+1)+'/'+totalBatches, 10+Math.round((b/totalBatches)*75), attempt, max),
+          apiFn
+        )
+        translateStatus.retryAttempt = null
+        const batchTs = new Date().toISOString()
+        const cache = cacheTarget || translateCache
+        batch.forEach((origText, i) => {
+          if (results[i]) {
+            if (hasThai(results[i])) {
+              console.warn('[Translate] ' + label + ': AI returned Thai — rejected:', results[i])
+              stillFailed.push(origText)
+              return
+            }
+            cache.value[origText] = results[i]
+            aiLog.value.push({ original: origText, translated: results[i], source: logSource, batchNo: b + 1, ts: batchTs })
+            done++
+          } else {
+            console.warn('[Translate] ' + label + ': no result for index', i, '— kept in failed:', origText)
+            stillFailed.push(origText)
+          }
+        })
+      } catch (e) {
+        errors++
+        batch.forEach(t => stillFailed.push(t))
+      }
+      if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 300))
+    }
+    return { done, errors, stillFailed }
+  }
+
   async function retryFailed(endpoint, batchSize, maxRetries) {
-    if (!_failedTexts.length) return
+    if (!_totalFailed()) return
     if (_isRetrying) { console.warn('[Translate] retryFailed already in progress, skipping.'); return }
     _isRetrying = true
-    const retryTexts = _failedTexts.slice()
-    _failedTexts = []
+
+    const retryThai   = _failedTexts.slice()
+    const retryPolish = _failedPolishTexts.slice()
+    _failedTexts        = []
+    _failedPolishTexts  = []
     setFailedBadge(0)
-    const totalBatches = Math.ceil(retryTexts.length / batchSize)
+
+    const totalForStatus = retryThai.length + retryPolish.length
     let retryDone = 0, retryErrors = 0
+
     try {
-      for (let b = 0; b < totalBatches; b++) {
-        const batch = retryTexts.slice(b * batchSize, (b + 1) * batchSize)
-        setStatus('🔄 Retrying ' + (retryDone + batch.length) + '/' + retryTexts.length, 'Retry batch ' + (b+1) + '/' + totalBatches, 10 + Math.round((b / totalBatches) * 85))
-        try {
-          const results = await callAPIWithRetry(batch, endpoint, maxRetries, 'Retry batch '+(b+1)+'/'+totalBatches,
-            (attempt, max, delayMs) => setStatus('⏳ รอ '+(delayMs/1000).toFixed(0)+'s...', 'Retry batch '+(b+1)+'/'+totalBatches, 10+Math.round((b/totalBatches)*85), attempt, max)
-          )
-          translateStatus.retryAttempt = null
-          const batchTs = new Date().toISOString()
-          batch.forEach((origText, i) => {
-            if (results[i]) {
-              translateCache.value[origText] = results[i]
-              aiLog.value.push({ original: origText, translated: results[i], source: 'ai-retry', batchNo: b + 1, ts: batchTs })
-              retryDone++
-            }
-          })
-        } catch (e) {
-          retryErrors++
-          batch.forEach(t => _failedTexts.push(t))
-        }
-        if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 300))
+      // ── Retry Thai texts with callAPI (Thai → English) ──
+      if (retryThai.length) {
+        const { done, errors, stillFailed } = await _retryQueue(
+          retryThai, '🔄 Thai Retry', endpoint, batchSize, maxRetries,
+          callAPI, translateCache, 'ai-retry', totalForStatus
+        )
+        retryDone   += done
+        retryErrors += errors
+        stillFailed.forEach(t => _failedTexts.push(t))
+      }
+
+      // ── Retry Dict-Polish texts with callAPIPolish (Eng → Better Eng) ──
+      if (retryPolish.length) {
+        const { done, errors, stillFailed } = await _retryQueue(
+          retryPolish, '🔄 Polish Retry', endpoint, batchSize, maxRetries,
+          callAPIPolish, polishCache, 'dict-polish-retry', totalForStatus
+        )
+        retryDone   += done
+        retryErrors += errors
+        stillFailed.forEach(t => _failedPolishTexts.push(t))
       }
     } finally { _isRetrying = false }
+
     const applied = _lastAllTableData ? applyTranslations(_lastAllTableData) : 0
-    if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
+    if (_totalFailed() > 0) setFailedBadge(_totalFailed())
     const msg = (retryErrors ? '⚠️' : '✅') + ' Retry เสร็จ · สำเร็จ: ' + retryDone +
-      (retryErrors ? ' · ยังเหลือ: ' + (retryTexts.length - retryDone) : '') + ' · Applied: ' + applied
+      (retryErrors ? ' · ยังเหลือ: ' + _totalFailed() : '') + ' · Applied: ' + applied
     setStatus(msg, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', retryErrors ? 80 : 100)
     return msg
   }
@@ -651,6 +703,6 @@ export function useTranslate() {
     retryFailed,
     applyTranslations,
     restoreOriginals,
-    hasFailed: () => _failedTexts.length > 0
+    hasFailed: () => _totalFailed() > 0
   }
 }
