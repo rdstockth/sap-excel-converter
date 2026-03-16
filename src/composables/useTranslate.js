@@ -93,34 +93,48 @@ export function useTranslate() {
     }
 
     // ── Normalise response → ordered array ──
+    // IMPORTANT: Array responses are REJECTED — they have no index guarantee.
     if (Array.isArray(parsed)) {
-      // Fallback: AI returned plain array despite instruction — use as-is with padding
-      if (parsed.length !== texts.length) {
-        console.warn('[Translate] Array length mismatch: expected', texts.length, 'got', parsed.length)
-        while (parsed.length < texts.length) parsed.push(null)
-        parsed = parsed.slice(0, texts.length)
-      }
-      return parsed
+      throw new Error('[Translate] AI returned a plain array — index alignment cannot be guaranteed. Retrying.')
     }
 
     if (parsed && typeof parsed === 'object') {
       // Unwrap nested wrapper: { translations: {...} } or { results: {...} }
       const inner = parsed?.translations || parsed?.results || parsed?.data
-      if (inner && typeof inner === 'object' && !Array.isArray(inner)) parsed = inner
-      else if (inner && Array.isArray(inner)) {
-        // Got array inside wrapper — recurse to array handler above
-        const arr = inner
-        while (arr.length < texts.length) arr.push(null)
-        return arr.slice(0, texts.length)
+      if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+        parsed = inner
+      } else if (inner && Array.isArray(inner)) {
+        // Array inside wrapper is equally unsafe — reject
+        throw new Error('[Translate] AI returned array inside wrapper — index alignment cannot be guaranteed. Retrying.')
       }
 
-      // Re-assemble in original index order — prevents swap bugs
-      const result = texts.map((_, i) => {
+      // ── Re-assemble in original index order with source-echo validation ──
+      const result = texts.map((origText, i) => {
         const val = parsed[String(i)] ?? parsed[i] ?? null
+
+        // Support source-echo format: { "0": { "s": "...", "t": "..." } }
+        if (val && typeof val === 'object' && typeof val.t === 'string') {
+          if (typeof val.s === 'string') {
+            const expectedPrefix = origText.trim().slice(0, 6)
+            const returnedPrefix = val.s.trim().slice(0, 6)
+            if (expectedPrefix && returnedPrefix && expectedPrefix !== returnedPrefix) {
+              console.warn(
+                '[Translate] Source-echo mismatch at index', i,
+                '— expected:', JSON.stringify(expectedPrefix),
+                'got:', JSON.stringify(returnedPrefix),
+                '— entry rejected'
+              )
+              return null
+            }
+          }
+          return val.t
+        }
+
         return typeof val === 'string' ? val : null
       })
+
       const missing = result.filter(v => v === null).length
-      if (missing > 0) console.warn('[Translate] Keyed response missing', missing, 'of', texts.length, 'entries')
+      if (missing > 0) console.warn('[Translate] Response missing/rejected', missing, 'of', texts.length, 'entries')
       return result
     }
 
@@ -149,7 +163,11 @@ export function useTranslate() {
 '9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
 'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be translated, write your best English approximation.\n\n' +
-'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value must be an object with:\n' +
+'  "s": first 6 characters of the source input (for alignment validation)\n' +
+'  "t": the English translation\n' +
+'Example: {"0":{"s":"ลาเบล","t":"Label is stuck"},"1":{"s":"เครื่อง","t":"Machine is not working"}}\n' +
+'The index key MUST correspond exactly to the same-numbered input key. Never reorder. No markdown, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
