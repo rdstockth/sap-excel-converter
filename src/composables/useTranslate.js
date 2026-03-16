@@ -131,14 +131,18 @@ export function useTranslate() {
   async function callAPI(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a facility maintenance report writer. Translate these Thai SAP work order descriptions into natural English maintenance report sentences.\n\n' +
+      'Translate Thai SAP maintenance descriptions to concise English.\n\n' +
+      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
+      'Examples:\n' +
+      '  "ท่อน้ำชั้น2รั่ว" → "Water pipe floor 2 leaking"\n' +
+      '  "แอร์ห้อง301ไม่เย็น" → "AC room 301 not cooling"\n' +
+      '  "loading conveyor 4 ไม่หมุน" → "Loading conveyor 4 not rotating"\n' +
+      '  "เซ็นเซอร์สายพาน3ขาด" → "Sensor conveyor belt 3 broken"\n\n' +
       'Rules:\n' +
-      '1. Write complete, natural sentences — NOT word-for-word translations.\n' +
-      '2. Use "The [component] in/at the [location] is [symptom]." structure when applicable.\n' +
-      '3. For absence/flow issues use "has no water flow" not "is not flowing".\n' +
-      '4. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
-      '5. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
-      '6. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
+      '1. Include location/line number if present in the original.\n' +
+      '2. Keep all codes, numbers, model names exactly as-is.\n' +
+      '3. No articles (a/the), no "is/are", no punctuation unless needed.\n' +
+      '4. If text is already English or mixed, clean it up without expanding.\n\n' +
       'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
       'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -148,14 +152,17 @@ export function useTranslate() {
   async function callAPIPolish(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a facility maintenance report writer. The following texts are English translations from a Thai-English dictionary — they may be choppy, literal, or grammatically awkward.\n\n' +
-      'Rewrite each one into a single, natural, professional maintenance report sentence.\n\n' +
+      'Polish these rough English maintenance descriptions. Fix grammar and word order only.\n\n' +
+      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
+      'Examples:\n' +
+      '  "pipe water floor 2 leak" → "Water pipe floor 2 leaking"\n' +
+      '  "air not cool room 301" → "AC room 301 not cooling"\n' +
+      '  "sensor belt line 3 cut" → "Sensor conveyor belt line 3 broken"\n\n' +
       'Rules:\n' +
-      '1. Fix grammar, word order, and phrasing to sound natural.\n' +
-      '2. Use "The [component] in/at the [location] is [symptom]." structure when applicable.\n' +
-      '3. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
-      '4. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
-      '5. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
+      '1. Fix word order and grammar — do NOT add detail not in the original.\n' +
+      '2. Keep location/line numbers if present.\n' +
+      '3. Keep all codes, numbers, model names exactly as-is.\n' +
+      '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
       'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
       'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -165,15 +172,17 @@ export function useTranslate() {
   async function callAPIEngRewrite(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a facility maintenance report writer. The following texts are English SAP work order descriptions that may be abbreviated, terse, or unclear.\n\n' +
-      'Rewrite each one into a single, clear, professional maintenance report sentence.\n\n' +
+      'Rewrite these English SAP maintenance descriptions to be concise and clear.\n\n' +
+      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
+      'Examples:\n' +
+      '  "pipe water top 2 leak" → "Water pipe floor 2 leaking"\n' +
+      '  "loading conveyor 4 not spin" → "Loading conveyor 4 not rotating"\n' +
+      '  "M/C 3 tank 2.2 error" → "M/C 3 tank 2.2 error" (already clear — keep as-is)\n\n' +
       'Rules:\n' +
-      '1. Expand abbreviations and improve clarity while keeping the original meaning.\n' +
-      '2. Use "The [component] in/at the [location] is/has [symptom/issue]." structure when applicable.\n' +
-      '3. Use correct prepositions: rooms/areas → "in the", floors/ceilings → "on the", machine positions → "at the".\n' +
-      '4. Preserve equipment codes, numbers, and model names exactly as-is.\n' +
-      '5. If the text is already clear and complete, keep it with only minor improvements.\n' +
-      '6. Keep it concise (1 sentence preferred). No filler phrases.\n\n' +
+      '1. Keep location, line numbers, and equipment context from the original.\n' +
+      '2. Keep all codes, numbers, model names exactly as-is.\n' +
+      '3. If already clear and short, return with minimal change.\n' +
+      '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
       'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
       'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
