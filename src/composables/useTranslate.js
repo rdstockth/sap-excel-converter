@@ -155,18 +155,23 @@ export function useTranslate() {
   async function callAPI(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'Translate Thai SAP maintenance descriptions to concise English.\n\n' +
-      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
+      'Translate SAP maintenance descriptions into concise English. Input may be Thai, English, or mixed Thai-English.\n\n' +
+      'CRITICAL RULES:\n' +
+      '⚠️ ALL Thai words MUST be translated. NEVER output Thai characters. Output must be 100% English.\n' +
+      '⚠️ Mixed text like "Spindle สายพานขาด #7" → "Spindle belt broken #7" (translate Thai parts, keep English/codes).\n\n' +
+      'Style: short, technical. Max ~12 words. Format: [equipment] [location] [issue].\n' +
       'Examples:\n' +
       '  "ท่อน้ำชั้น2รั่ว" → "Water pipe floor 2 leaking"\n' +
       '  "แอร์ห้อง301ไม่เย็น" → "AC room 301 not cooling"\n' +
       '  "loading conveyor 4 ไม่หมุน" → "Loading conveyor 4 not rotating"\n' +
-      '  "เซ็นเซอร์สายพาน3ขาด" → "Sensor conveyor belt 3 broken"\n\n' +
+      '  "RX2,Fima Spindle สายพานขาด #7" → "RX2 Fima Spindle belt broken #7"\n' +
+      '  "เซนเซอร์ไม่ตัด" → "Sensor not cutting"\n' +
+      '  "คลีนรูมโรง1 แอร์ร้อน" → "Cleanroom building 1 AC overheating"\n\n' +
       'Rules:\n' +
-      '1. Include location/line number if present in the original.\n' +
-      '2. Keep all codes, numbers, model names exactly as-is.\n' +
-      '3. No articles (a/the), no "is/are", no punctuation unless needed.\n' +
-      '4. If text is already English or mixed, clean it up without expanding.\n\n' +
+      '1. Translate ALL Thai words — no exceptions, even for short or common words.\n' +
+      '2. Keep all codes, numbers, model names, and English technical terms exactly as-is.\n' +
+      '3. Include location/line number if present.\n' +
+      '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
       'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
       'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -176,13 +181,15 @@ export function useTranslate() {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'Polish these rough English maintenance descriptions. Fix grammar and word order only.\n\n' +
-      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
+      'CRITICAL: If any Thai characters appear in the input, translate them to English first, then polish.\n' +
+      '⚠️ Output must be 100% English — NEVER output Thai characters.\n\n' +
+      'Style: short, technical. Max ~12 words. Format: [equipment] [location] [issue].\n' +
       'Examples:\n' +
       '  "pipe water floor 2 leak" → "Water pipe floor 2 leaking"\n' +
       '  "air not cool room 301" → "AC room 301 not cooling"\n' +
       '  "sensor belt line 3 cut" → "Sensor conveyor belt line 3 broken"\n\n' +
       'Rules:\n' +
-      '1. Fix word order and grammar — do NOT add detail not in the original.\n' +
+      '1. Fix word order and grammar only — do NOT add detail not in the original.\n' +
       '2. Keep location/line numbers if present.\n' +
       '3. Keep all codes, numbers, model names exactly as-is.\n' +
       '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
@@ -195,15 +202,18 @@ export function useTranslate() {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'Rewrite these English SAP maintenance descriptions to be concise and clear.\n\n' +
-      'Style: short, clear, technical — include what + where + problem. Max ~12 words.\n' +
+      'CRITICAL: If any Thai characters appear in the input, translate them to English first, then rewrite.\n' +
+      '⚠️ Output must be 100% English — NEVER output Thai characters.\n\n' +
+      'Style: short, technical. Max ~12 words. Format: [equipment] [location] [issue].\n' +
       'Examples:\n' +
       '  "pipe water top 2 leak" → "Water pipe floor 2 leaking"\n' +
       '  "loading conveyor 4 not spin" → "Loading conveyor 4 not rotating"\n' +
+      '  "RX2 Spindle สายพานขาด #7" → "RX2 Spindle belt broken #7"\n' +
       '  "M/C 3 tank 2.2 error" → "M/C 3 tank 2.2 error" (already clear — keep as-is)\n\n' +
       'Rules:\n' +
       '1. Keep location, line numbers, and equipment context from the original.\n' +
       '2. Keep all codes, numbers, model names exactly as-is.\n' +
-      '3. If already clear and short, return with minimal change.\n' +
+      '3. Translate any remaining Thai words — never leave Thai in output.\n' +
       '4. No articles (a/the), no "is/are", no punctuation unless needed.\n\n' +
       'IMPORTANT: Return ONLY a JSON object keyed by index, e.g. {"0":"...", "1":"..."}. Same count as input. No markdown, no preamble.\n\n' +
       'Input:\n' + JSON.stringify(indexedInput)
