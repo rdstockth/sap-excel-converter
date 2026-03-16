@@ -77,10 +77,18 @@ const settings = reactive({
   aiTranslate:   false,
   dictPolish:    false,
   engRewrite:    false,
+  bypassDict:    false,
   aiApiEndpoint: 'https://thaillm.setthapong-pasavet.workers.dev/',
   batchSize:     50,
   maxRetries:    2,
 })
+
+// ── ENG Rewrite PM Type Filter ──
+const engRewritePmTypes = reactive(new Set(['PM01', 'PM06', 'PM09', 'PM11']))
+function togglePmType(t) {
+  if (engRewritePmTypes.has(t)) engRewritePmTypes.delete(t)
+  else engRewritePmTypes.add(t)
+}
 
 // ── Merge Filter ──
 const minTableCount = ref(3)
@@ -243,7 +251,7 @@ async function convertAll(mode) {
 
         if (settings.aiTranslate) {
           const singleData = {}; singleData[tableType] = records
-          const msg = await runTranslation(singleData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries, { dictPolish: settings.dictPolish, engRewrite: settings.engRewrite })
+          const msg = await runTranslation(singleData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries, { dictPolish: settings.dictPolish, engRewrite: settings.engRewrite, bypassDict: settings.bypassDict, engRewritePmTypes: settings.engRewrite ? engRewritePmTypes : null })
           if (msg) showToast(msg)
         }
 
@@ -329,7 +337,7 @@ async function mergeAndRag() {
 
     if (settings.aiTranslate) {
       progress.label = 'กำลังแปลภาษา...'
-      const msg = await runTranslation(allTableData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries, { dictPolish: settings.dictPolish, engRewrite: settings.engRewrite })
+      const msg = await runTranslation(allTableData, settings.aiApiEndpoint, settings.batchSize, settings.maxRetries, { dictPolish: settings.dictPolish, engRewrite: settings.engRewrite, bypassDict: settings.bypassDict, engRewritePmTypes: settings.engRewrite ? engRewritePmTypes : null })
       if (msg) showToast(msg)
     }
 
@@ -666,12 +674,38 @@ onMounted(() => initWorker())
               </div>
 
               <!-- Mode: ENG → AI Rewrite -->
-              <div class="setting-row" style="background:#F0FDF4;border-radius:8px;padding:8px 10px;border:1px solid #BBF7D0">
-                <div>
-                  <div class="setting-label" style="color:#166534">✍️ ENG → AI Rewrite</div>
-                  <div class="setting-sub">ส่ง text ภาษาอังกฤษ (ที่ไม่มีภาษาไทย) ให้ AI เรียบเรียงประโยคใหม่ด้วย</div>
+              <div style="background:#F0FDF4;border-radius:8px;padding:8px 10px;border:1px solid #BBF7D0;display:flex;flex-direction:column;gap:8px">
+                <div class="setting-row" style="margin:0">
+                  <div>
+                    <div class="setting-label" style="color:#166534">✍️ ENG → AI Rewrite</div>
+                    <div class="setting-sub">ส่ง text ภาษาอังกฤษ (ที่ไม่มีภาษาไทย) ให้ AI เรียบเรียงประโยคใหม่ด้วย</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" v-model="settings.engRewrite" :disabled="!settings.aiTranslate"><div class="toggle-track"></div></label>
                 </div>
-                <label class="toggle"><input type="checkbox" v-model="settings.engRewrite" :disabled="!settings.aiTranslate"><div class="toggle-track"></div></label>
+
+                <!-- PM Type filter (shown when engRewrite is on) -->
+                <div v-if="settings.engRewrite" style="padding-top:4px;border-top:1px solid #BBF7D0">
+                  <div class="setting-sub" style="margin-bottom:5px;color:#166534">🏷️ เฉพาะ PM Type</div>
+                  <div style="display:flex;gap:5px;flex-wrap:wrap">
+                    <button v-for="t in ['PM01','PM06','PM09','PM11']" :key="t"
+                      class="req-table-btn" :class="{active: engRewritePmTypes.has(t)}"
+                      style="border-color:#86EFAC;color:#166534"
+                      :style="engRewritePmTypes.has(t) ? {background:'#166534',color:'#fff',borderColor:'#166534'} : {}"
+                      @click="togglePmType(t)">{{ t }}</button>
+                    <span style="font-size:10px;color:var(--sub2);align-self:center;margin-left:2px">
+                      {{ engRewritePmTypes.size === 0 ? '(ทุก PM Type)' : engRewritePmTypes.size + ' types' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mode: Bypass Dict → AI ทันที -->
+              <div class="setting-row" style="background:#FFF7ED;border-radius:8px;padding:8px 10px;border:1px solid #FED7AA">
+                <div>
+                  <div class="setting-label" style="color:#C2410C">⚡ Bypass Dict → AI ทันที</div>
+                  <div class="setting-sub">ข้ามการแปลด้วย Dict ส่งภาษาไทยทั้งหมดให้ AI โดยตรง (ช้ากว่าแต่แม่นกว่า)</div>
+                </div>
+                <label class="toggle"><input type="checkbox" v-model="settings.bypassDict" :disabled="!settings.aiTranslate"><div class="toggle-track"></div></label>
               </div>
             </div>
 
@@ -679,7 +713,8 @@ onMounted(() => initWorker())
               <div class="info-box purple">
                 🔤 ตรวจจับข้อความไทยอัตโนมัติ → แปลเป็นอังกฤษผ่าน AI<br>
                 ✨ <strong style="color:#7C3AED">Dict+Polish</strong>: Dict แปลก่อน → AI เรียบเรียงให้เป็นธรรมชาติ<br>
-                ✍️ <strong style="color:#166534">ENG Rewrite</strong>: ส่ง text อังกฤษให้ AI เรียบเรียงใหม่ด้วย<br>
+                ✍️ <strong style="color:#166534">ENG Rewrite</strong>: เฉพาะ PM Type ที่เลือก · กรอง field ที่ไม่มีภาษาไทย<br>
+                ⚡ <strong style="color:#C2410C">Bypass Dict</strong>: ข้าม Dict ส่ง Thai ทั้งหมดให้ AI โดยตรง<br>
                 ✅ Cache ผลแปล — ไม่เรียก API ซ้ำถ้า text เดิม
               </div>
 
