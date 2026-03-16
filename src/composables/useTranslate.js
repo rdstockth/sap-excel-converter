@@ -155,13 +155,14 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Preserve all equipment codes, tag numbers, model names, and identifiers exactly as provided.\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely. Keep only specific tag numbers or model names that identify a unique component (e.g. DL1, RX2, KD4-1/4A).\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra details not present in the original text.\n' +
 '8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
 '9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-'10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
+'10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n' +
+'11. Standalone numbers (e.g. "8", "3") that appear before or after a part name with no clear unit or quantity context should be OMITTED. Keep numbers only when they clearly indicate quantity of a specific part (e.g. "2 valves", "3 pins") or are part of a code/model (e.g. DL1, RX2).\n\n' +
 'THAI WORD DISAMBIGUATION — always interpret these words by maintenance context, NOT literal dictionary meaning:\n' +
 '  • เบิก → "Requisition", "Request spare part" — this is a PARTS REQUEST action, NOT a fault description\n' +
 '    e.g. เบิกวาล์ว 2 ตัว = Requisition 2 valve(s) — NEVER translate as "missing" or "withdraw"\n' +
@@ -205,12 +206,13 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Preserve all equipment codes, tag numbers, model numbers, and identifiers exactly as provided.\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely. Keep only specific tag numbers or model names that identify a unique component (e.g. DL1, RX2, KD4-1/4A).\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-'9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
+'9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n' +
+'10. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
 'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
 '  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
 '    e.g. "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
@@ -241,12 +243,13 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Preserve all equipment codes, tag numbers, model numbers, and identifiers exactly as provided.\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely. Keep only specific tag numbers or model names that identify a unique component (e.g. DL1, RX2, KD4-1/4A).\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-'9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
+'9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n' +
+'10. Standalone numbers that appear before or after a part name with no clear quantity context should be OMITTED. Keep numbers only when they clearly quantify a specific part or are part of a code/model.\n\n' +
 'CONTEXT CORRECTION — if the dictionary produced wrong word choices, fix them:\n' +
 '  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
 '    e.g. "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
