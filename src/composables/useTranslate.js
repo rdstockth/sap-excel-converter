@@ -26,6 +26,8 @@ export function useTranslate() {
   let _failedTexts = []
   let _lastAllTableData = null
   let _isRetrying = false
+  // 🟢 แก้ไขบัค 4: ป้องกัน Race Condition (กดรัว)
+  let _isTranslating = false 
   const _originalValues = new WeakMap()
   let _hideStatusTimer = null
 
@@ -37,7 +39,9 @@ export function useTranslate() {
     translateStatus.pct  = pct !== undefined ? Math.min(100, pct) : translateStatus.pct
     translateStatus.retryAttempt = retryAttempt
     translateStatus.maxRetry     = maxRetry
-    if (pct >= 80) {
+    
+    // 🟢 แก้ไขบัค 3: ให้ซ่อน Status เฉพาะตอนที่สำเร็จ 100% เท่านั้น (ถ้า error จะค้างไว้ให้เห็น)
+    if (pct === 100) {
       _hideStatusTimer = setTimeout(() => { translateStatus.show = false }, 3000)
     }
   }
@@ -61,7 +65,6 @@ export function useTranslate() {
   }
 
   // ── Build indexed input: { "0": text0, "1": text1, ... } ──
-  // Prevents ordering bugs — AI must return keyed object, we re-assemble by index.
   function _buildIndexed(texts) {
     const obj = {}
     texts.forEach((t, i) => { obj[String(i)] = t })
@@ -94,7 +97,6 @@ export function useTranslate() {
 
     // ── Normalise response → ordered array ──
     if (Array.isArray(parsed)) {
-      // Fallback: AI returned plain array despite instruction — use as-is with padding
       if (parsed.length !== texts.length) {
         console.warn('[Translate] Array length mismatch: expected', texts.length, 'got', parsed.length)
         while (parsed.length < texts.length) parsed.push(null)
@@ -104,17 +106,14 @@ export function useTranslate() {
     }
 
     if (parsed && typeof parsed === 'object') {
-      // Unwrap nested wrapper: { translations: {...} } or { results: {...} }
       const inner = parsed?.translations || parsed?.results || parsed?.data
       if (inner && typeof inner === 'object' && !Array.isArray(inner)) parsed = inner
       else if (inner && Array.isArray(inner)) {
-        // Got array inside wrapper — recurse to array handler above
         const arr = inner
         while (arr.length < texts.length) arr.push(null)
         return arr.slice(0, texts.length)
       }
 
-      // Re-assemble in original index order — prevents swap bugs
       const result = texts.map((_, i) => {
         const val = parsed[String(i)] ?? parsed[i] ?? null
         return typeof val === 'string' ? val : null
@@ -212,7 +211,12 @@ export function useTranslate() {
       ;(allTableData[tableType] || []).forEach(rec => {
         const val = rec[fieldName]
         if (!val || typeof val !== 'string' || !val.trim()) return
-        const tr = translateCache.value[String(val).trim()]
+        
+        // อ่านจาก Original เพื่อเช็ค Cache เสมอ
+        const snap = _originalValues.get(rec)
+        const checkVal = (snap && fieldName in snap) ? snap[fieldName] : val
+        
+        const tr = translateCache.value[String(checkVal).trim()]
         if (tr) { rec[fieldName] = tr; applied++ }
       })
     })
@@ -230,7 +234,6 @@ export function useTranslate() {
   }
 
   // ── Run a text array through AI in batches ──
-  // skipLog: true → do not push to aiLog (caller handles logging)
   async function _runBatches(textsArray, endpoint, batchSize, maxRetries, source, apiFn, statusPrefix, contextNote, skipLog = false) {
     let done = 0, errors = 0
     const failedBatch = []
@@ -275,186 +278,204 @@ export function useTranslate() {
 
   // ─────────────────────────────────────────────────
   // Main entry point
-  // options: { dictPolish: bool, engRewrite: bool, bypassDict: bool, engRewritePmTypes: Set|null }
   // ─────────────────────────────────────────────────
   async function runTranslation(allTableData, endpoint, batchSize, maxRetries, options = {}) {
-    const { dictPolish = false, engRewrite = false, bypassDict = false, engRewritePmTypes = null } = options
-    _lastAllTableData = allTableData
-    _failedTexts = []
-    setFailedBadge(0)
+    // 🟢 แก้ไขบัค 4: ป้องกัน Race Condition
+    if (_isTranslating) { 
+      console.warn('[Translate] Translation already in progress, skipping.')
+      return 
+    }
+    _isTranslating = true
 
-    snapshotOriginals(allTableData)
+    try {
+      const { dictPolish = false, engRewrite = false, bypassDict = false, engRewritePmTypes = null } = options
+      _lastAllTableData = allTableData
+      _failedTexts = []
+      setFailedBadge(0)
 
-    // ── Collect texts by type ──
-    const allThaiTexts = {}
-    const allEngTexts  = {}
-    // engRewritePmTypes: Set of allowed PM types e.g. Set(['PM01','PM06','PM09','PM11'])
-    // null = no filter (allow all)
-    const pmFilter = engRewritePmTypes && engRewritePmTypes.size > 0 ? engRewritePmTypes : null
-    translateFields.forEach(key => {
-      const [tableType, fieldName] = key.split('::')
-      ;(allTableData[tableType] || []).forEach(rec => {
-        const val = rec[fieldName]
-        if (!val || typeof val !== 'string' || !val.trim()) return
-        const trimmed = String(val).trim()
-        if (hasThai(trimmed)) {
-          allThaiTexts[trimmed] = true
-        } else if (/[a-zA-Z]/.test(trimmed)) {
-          // ENG Rewrite PM type filter
-          if (pmFilter) {
-            const pmType = getPmType(rec, tableType)
-            if (pmType && !pmFilter.has(pmType)) return  // skip if PM type not in allowed list
+      snapshotOriginals(allTableData)
+
+      const allThaiTexts = {}
+      const allEngTexts  = {}
+      const pmFilter = engRewritePmTypes && engRewritePmTypes.size > 0 ? engRewritePmTypes : null
+      
+      translateFields.forEach(key => {
+        const [tableType, fieldName] = key.split('::')
+        ;(allTableData[tableType] || []).forEach(rec => {
+          
+          // 🟢 แก้ไขบัค 1: อ่านค่า original เพื่อไม่ให้ข้อความที่แปลแล้ว ถูกมองว่าเป็น Eng Original
+          const snap = _originalValues.get(rec)
+          const val = (snap && fieldName in snap) ? snap[fieldName] : rec[fieldName]
+          
+          if (!val || typeof val !== 'string' || !val.trim()) return
+          const trimmed = String(val).trim()
+          
+          if (hasThai(trimmed)) {
+            allThaiTexts[trimmed] = true
+          } else if (/[a-zA-Z]/.test(trimmed)) {
+            if (pmFilter) {
+              const pmType = getPmType(rec, tableType)
+              if (pmType && !pmFilter.has(pmType)) return 
+            }
+            allEngTexts[trimmed] = true
           }
-          allEngTexts[trimmed] = true
-        }
+        })
       })
-    })
 
-    const uniqueThai = Object.keys(allThaiTexts).filter(t => !translateCache.value[t])
-    const uniqueEng  = Object.keys(allEngTexts).filter(t => !translateCache.value[t])
-    const hasTh  = Object.keys(allThaiTexts).length > 0
+      const uniqueThai = Object.keys(allThaiTexts).filter(t => !translateCache.value[t])
+      const uniqueEng  = Object.keys(allEngTexts).filter(t => !translateCache.value[t])
+      const hasTh  = Object.keys(allThaiTexts).length > 0
 
-    // ── ENG-only rewrite mode (no Thai texts at all) ──
-    if (engRewrite && !hasTh) {
-      if (!uniqueEng.length) {
+      if (engRewrite && !hasTh) {
+        if (!uniqueEng.length) {
+          const applied = applyTranslations(allTableData)
+          return '✅ ENG Rewrite (จาก cache) · Applied: ' + applied
+        }
+        if (!endpoint) {
+          setStatus('⚠️ ' + uniqueEng.length + ' ENG texts — ใส่ Endpoint ก่อน', '', 50)
+          return
+        }
+        setStatus('✍️ ENG → AI Rewrite...', uniqueEng.length + ' unique texts', 5)
+        const { done, errors, failedBatch } = await _runBatches(
+          uniqueEng, endpoint, batchSize, maxRetries,
+          'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length
+        )
+        if (failedBatch.length) { failedBatch.forEach(t => _failedTexts.push(t)); setFailedBadge(_failedTexts.length) }
         const applied = applyTranslations(allTableData)
-        return '✅ ENG Rewrite (จาก cache) · Applied: ' + applied
+        const summary = (errors ? '⚠️' : '✅') + ' ENG Rewrite · ' + done + ' rewritten · Applied: ' + applied
+        setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', errors ? 80 : 100)
+        return summary
       }
-      if (!endpoint) {
-        setStatus('⚠️ ' + uniqueEng.length + ' ENG texts — ใส่ Endpoint ก่อน', '', 50)
-        return
+
+      if (!hasTh && !engRewrite) return '✅ ไม่พบข้อความภาษาไทยในช่องที่เลือก'
+
+      if (!uniqueThai.length) {
+        const applied = applyTranslations(allTableData)
+        const summary = '✅ แปลสำเร็จ (จาก cache) ' + applied + ' fields · Cache: ' + Object.keys(translateCache.value).length + ' texts'
+        setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', 100)
+        return summary
       }
-      setStatus('✍️ ENG → AI Rewrite...', uniqueEng.length + ' unique texts', 5)
-      const { done, errors, failedBatch } = await _runBatches(
-        uniqueEng, endpoint, batchSize, maxRetries,
-        'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length
-      )
-      if (failedBatch.length) { failedBatch.forEach(t => _failedTexts.push(t)); setFailedBadge(_failedTexts.length) }
-      const applied = applyTranslations(allTableData)
-      const summary = (errors ? '⚠️' : '✅') + ' ENG Rewrite · ' + done + ' rewritten · Applied: ' + applied
-      setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', errors ? 80 : 100)
-      return summary
-    }
 
-    // ── No Thai texts ──
-    if (!hasTh && !engRewrite) return '✅ ไม่พบข้อความภาษาไทยในช่องที่เลือก'
+      // ── Pass 1: Dictionary ──
+      resetFuzzyHits()
+      let dictHit = 0
+      const needAI = []
+      const dictResults = [] 
+      const ts = new Date().toISOString()
 
-    // ── Cache-only shortcut ──
-    if (!uniqueThai.length) {
-      const applied = applyTranslations(allTableData)
-      const summary = '✅ แปลสำเร็จ (จาก cache) ' + applied + ' fields · Cache: ' + Object.keys(translateCache.value).length + ' texts'
-      setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', 100)
-      return summary
-    }
+      if (bypassDict) {
+        setStatus('⚡ Bypass Dict → AI ทั้งหมด...', uniqueThai.length + ' unique texts', 5)
+        uniqueThai.forEach(text => needAI.push(text))
+      } else {
+        setStatus('📖 Dictionary pass...', uniqueThai.length + ' unique texts', 5)
+        uniqueThai.forEach(text => {
+          const result = dictTranslate(text)
+          translateCache.value[text] = result
+          if (!hasThai(result)) {
+            dictHit++
+            aiLog.value.push({ original: text, translated: result, source: 'dict', batchNo: 0, ts })
+            if (dictPolish) dictResults.push({ original: text, translated: result })
+          } else {
+            needAI.push(text)
+          }
+        })
+      }
 
-    // ── Pass 1: Dictionary (skip if bypassDict) ──
-    resetFuzzyHits()
-    let dictHit = 0
-    const needAI = []
-    const dictResults = [] // for polish pass
-    const ts = new Date().toISOString()
-
-    if (bypassDict) {
-      setStatus('⚡ Bypass Dict → AI ทั้งหมด...', uniqueThai.length + ' unique texts', 5)
-      // Send all Thai texts directly to AI, skip dict entirely
-      uniqueThai.forEach(text => needAI.push(text))
-    } else {
-      setStatus('📖 Dictionary pass...', uniqueThai.length + ' unique texts', 5)
-      uniqueThai.forEach(text => {
-        const result = dictTranslate(text)
-        translateCache.value[text] = result
-        if (!hasThai(result)) {
-          dictHit++
-          aiLog.value.push({ original: text, translated: result, source: 'dict', batchNo: 0, ts })
-          if (dictPolish) dictResults.push({ original: text, translated: result })
-        } else {
-          needAI.push(text)
-        }
-      })
-    }
-
-    // ── Pass 2a: Dict → AI Polish ──
-    let polishDone = 0, polishErrors = 0
-    if (dictPolish && dictResults.length && endpoint) {
-      setStatus('✨ Dict → AI Polish...', dictResults.length + ' dict-translated texts', 12)
-      const polishInputs = dictResults.map(d => d.translated)
-      // skipLog=true — we log manually below with Thai original as `original`
-      const { done, errors, failedBatch } = await _runBatches(
-        polishInputs, endpoint, batchSize, maxRetries,
-        'dict-polish', callAPIPolish, '✨ Dict Polish', ' · Dict hits: ' + dictResults.length,
-        true  // skipLog
-      )
-      polishDone = done; polishErrors = errors
-      // Re-map: Thai original → polished English (override dict result in cache)
-      // Log entry shows Thai→polished with dict result as middle step in title
-      const polishTs = new Date().toISOString()
-      dictResults.forEach(({ original, translated }, idx) => {
-        const polished = translateCache.value[translated]
-        if (polished && polished !== translated) {
-          translateCache.value[original] = polished
-          aiLog.value.push({
-            original,
-            translated: polished,
-            dictStep: translated,   // store dict intermediate for display
-            source: 'dict-polish',
-            batchNo: Math.floor(idx / batchSize) + 1,
-            ts: polishTs
-          })
-        } else {
-          // Polish didn't improve — keep dict result, log as dict-polish with same text
-          aiLog.value.push({
-            original,
-            translated: translated,
-            dictStep: translated,
-            source: 'dict-polish',
-            batchNo: Math.floor(idx / batchSize) + 1,
-            ts: polishTs
+      // ── Pass 2a: Dict → AI Polish ──
+      let polishDone = 0, polishErrors = 0
+      if (dictPolish && dictResults.length && endpoint) {
+        setStatus('✨ Dict → AI Polish...', dictResults.length + ' dict-translated texts', 12)
+        const polishInputs = dictResults.map(d => d.translated)
+        const { done, errors, failedBatch } = await _runBatches(
+          polishInputs, endpoint, batchSize, maxRetries,
+          'dict-polish', callAPIPolish, '✨ Dict Polish', ' · Dict hits: ' + dictResults.length,
+          true  
+        )
+        polishDone = done; polishErrors = errors
+        
+        const polishTs = new Date().toISOString()
+        dictResults.forEach(({ original, translated }, idx) => {
+          const polished = translateCache.value[translated]
+          if (polished && polished !== translated) {
+            translateCache.value[original] = polished
+            aiLog.value.push({
+              original,
+              translated: polished,
+              dictStep: translated,
+              source: 'dict-polish',
+              batchNo: Math.floor(idx / batchSize) + 1,
+              ts: polishTs
+            })
+          } else {
+            aiLog.value.push({
+              original,
+              translated: translated,
+              dictStep: translated,
+              source: 'dict-polish',
+              batchNo: Math.floor(idx / batchSize) + 1,
+              ts: polishTs
+            })
+          }
+        })
+        
+        // 🟢 แก้ไขบัค 2: หา Original (Thai) ของ text ที่ failed ส่งไป retry
+        if (failedBatch.length) {
+          failedBatch.forEach(failedEngText => {
+            const match = dictResults.find(d => d.translated === failedEngText)
+            if (match) {
+              _failedTexts.push(match.original) // ดันภาษาไทยกลับเข้าไป
+            } else {
+              _failedTexts.push(failedEngText) // Fallback กรณีหาไม่เจอ (ไม่ควรเกิดขึ้น)
+            }
           })
         }
-      })
-      if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
+      }
+
+      // ── Pass 2b: AI Translate (remaining Thai) ──
+      let aiDone = 0, aiErrors = 0
+      if (needAI.length && endpoint) {
+        const { done, errors, failedBatch } = await _runBatches(
+          needAI, endpoint, batchSize, maxRetries,
+          'ai', callAPI, '🤖 AI pass',
+          ' · Dict hit: ' + dictHit + (maxRetries > 0 ? ' · Max retry: ' + maxRetries : '')
+        )
+        aiDone = done; aiErrors = errors
+        if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
+      } else if (needAI.length && !endpoint) {
+        setStatus('⚠️ ' + needAI.length + ' ข้อความยังเหลือ — ใส่ Endpoint เพื่อใช้ AI', '', 50)
+      }
+
+      // ── Pass 3: ENG → AI Rewrite ──
+      let engReDone = 0, engReErrors = 0
+      if (engRewrite && uniqueEng.length && endpoint) {
+        setStatus('✍️ ENG → AI Rewrite...', uniqueEng.length + ' ENG texts', 88)
+        const { done, errors, failedBatch } = await _runBatches(
+          uniqueEng, endpoint, batchSize, maxRetries,
+          'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length
+        )
+        engReDone = done; engReErrors = errors
+        if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
+      }
+
+      const applied = applyTranslations(allTableData)
+      if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
+
+      const fuzzyHits = _fuzzyHits
+      const hasErrors = aiErrors > 0 || polishErrors > 0 || engReErrors > 0
+      const summary = (hasErrors ? '⚠️' : '✅') + ' เสร็จสิ้น · Applied: ' + applied +
+        (bypassDict ? ' · ⚡ Bypass Dict' : ' · 📖 Dict: ' + dictHit) +
+        (fuzzyHits ? ' · 🔍 Fuzzy: ' + fuzzyHits : '') +
+        (polishDone ? ' · ✨ Polish: ' + polishDone : '') +
+        (needAI.length ? ' · 🤖 AI: ' + aiDone : '') +
+        (engReDone ? ' · ✍️ ENG: ' + engReDone : '') +
+        (hasErrors ? ' · ❌ errors' : '')
+      setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', hasErrors ? 80 : 100)
+      return summary
+      
+    } finally {
+      // 🟢 เคลียร์ Flag ไม่ว่าจะจบแบบ Error หรือ สำเร็จ
+      _isTranslating = false
     }
-
-    // ── Pass 2b: AI Translate (remaining Thai) ──
-    let aiDone = 0, aiErrors = 0
-    if (needAI.length && endpoint) {
-      const { done, errors, failedBatch } = await _runBatches(
-        needAI, endpoint, batchSize, maxRetries,
-        'ai', callAPI, '🤖 AI pass',
-        ' · Dict hit: ' + dictHit + (maxRetries > 0 ? ' · Max retry: ' + maxRetries : '')
-      )
-      aiDone = done; aiErrors = errors
-      if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
-    } else if (needAI.length && !endpoint) {
-      setStatus('⚠️ ' + needAI.length + ' ข้อความยังเหลือ — ใส่ Endpoint เพื่อใช้ AI', '', 50)
-    }
-
-    // ── Pass 3: ENG → AI Rewrite (combined with TH mode) ──
-    let engReDone = 0, engReErrors = 0
-    if (engRewrite && uniqueEng.length && endpoint) {
-      setStatus('✍️ ENG → AI Rewrite...', uniqueEng.length + ' ENG texts', 88)
-      const { done, errors, failedBatch } = await _runBatches(
-        uniqueEng, endpoint, batchSize, maxRetries,
-        'eng-rewrite', callAPIEngRewrite, '✍️ ENG Rewrite', ' · ENG texts: ' + uniqueEng.length
-      )
-      engReDone = done; engReErrors = errors
-      if (failedBatch.length) failedBatch.forEach(t => _failedTexts.push(t))
-    }
-
-    const applied = applyTranslations(allTableData)
-    if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
-
-    const fuzzyHits = _fuzzyHits
-    const hasErrors = aiErrors > 0 || polishErrors > 0 || engReErrors > 0
-    const summary = (hasErrors ? '⚠️' : '✅') + ' เสร็จสิ้น · Applied: ' + applied +
-      (bypassDict ? ' · ⚡ Bypass Dict' : ' · 📖 Dict: ' + dictHit) +
-      (fuzzyHits ? ' · 🔍 Fuzzy: ' + fuzzyHits : '') +
-      (polishDone ? ' · ✨ Polish: ' + polishDone : '') +
-      (needAI.length ? ' · 🤖 AI: ' + aiDone : '') +
-      (engReDone ? ' · ✍️ ENG: ' + engReDone : '') +
-      (hasErrors ? ' · ❌ errors' : '')
-    setStatus(summary, 'Cache: ' + Object.keys(translateCache.value).length + ' texts', hasErrors ? 80 : 100)
-    return summary
   }
 
   async function retryFailed(endpoint, batchSize, maxRetries) {
@@ -490,6 +511,7 @@ export function useTranslate() {
         if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 300))
       }
     } finally { _isRetrying = false }
+    
     const applied = _lastAllTableData ? applyTranslations(_lastAllTableData) : 0
     if (_failedTexts.length > 0) setFailedBadge(_failedTexts.length)
     const msg = (retryErrors ? '⚠️' : '✅') + ' Retry เสร็จ · สำเร็จ: ' + retryDone +
