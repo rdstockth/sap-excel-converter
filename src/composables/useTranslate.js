@@ -146,6 +146,11 @@ export function useTranslate() {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'You are a facility maintenance report writer for SAP work orders.\n\n' +
+'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. The vast majority describe:\n' +
+'  - A broken, faulty, or abnormal component (most common)\n' +
+'  - A maintenance task to perform (fabricate, install, replace, adjust)\n' +
+'  - A spare parts requisition\n' +
+'Always interpret ambiguous words through this maintenance fault-report lens first before considering other meanings.\n\n' +
 'Task:\n' +
 'Translate Thai maintenance issue descriptions into clear, natural English maintenance report sentences.\n\n' +
 'Guidelines:\n' +
@@ -155,7 +160,7 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes used alone) are internal identifiers — OMIT them from the translation entirely. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely, whether they appear standalone, prefixed, or wrapped in brackets e.g. [PLP], [LC]. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra details not present in the original text.\n' +
@@ -174,14 +179,39 @@ export function useTranslate() {
 '    NOTE: ใส่ = install/add only when acting on equipment. ใส่ in other contexts (e.g. wearing) is different.\n' +
 '  • ติด (without ตั้ง) → "is triggered", "is active", "is on", "is stuck" (e.g. ติด alarm = alarm is triggered, ติดไฟ = light is on, ติดขัด = is stuck)\n' +
 '    NEVER translate standalone ติด as "install" — use "ติดตั้ง" for installation.\n' +
-'  • ดับ → "is off", "has gone out", "is dead" (e.g. ไฟดับ = light is off / power is out)\n' +
+'  • ดับ → "is off", "has gone out", "is dead" (e.g. ไฟดับ = light is off / power is out, คอมดับ/com ดับ = computer is down)\n' +
+'  • com / คอม → "computer" or "PC" — NEVER translate as "communication"\n' +
+'  • THAI PHONETIC LETTERS — when ตัว + Thai syllable refers to a printed/engraved character or label, map to the English letter:\n' +
+'    เอ=A, บี=B, ซี=C, ดี=D, อี=E, เอฟ=F, จี=G, เอช=H, ไอ=I, เจ=J, เค=K, แอล=L, เอ็ม=M\n' +
+'    เอ็น=N, โอ=O, พี=P, คิว=Q, อาร์/อา=R, เอส=S, ที=T, ยู=U, วี=V, ดับ/ดับเบิ้ล=W, เอ็กซ์=X, วาย=Y, แซด=Z\n' +
+'    e.g. ตัวอา/ตัวอาร์ = letter R, ตัวบี = letter B, ตัวเอ็ม = letter M\n' +
+'    So: ตัวอาไม่สมบูรณ์ = "Letter R is incomplete" NOT "Unit A is incomplete"\n' +
 '  • ค้าง → "is stuck", "is frozen", "is jammed" (e.g. ค้างอยู่ = is stuck/frozen)\n' +
 '  • หลุด → "has come loose", "has detached", "has fallen off"\n' +
 '  • รั่ว → "is leaking"\n' +
-'  • ตัน → "is clogged", "is blocked"\n' +
+'  • ตัน → "is clogged", "is blocked" — this is ALWAYS a blockage symptom in maintenance context\n' +
+'    NEVER interpret ตัน as a unit of weight ("ton") — in maintenance reports ตัน always means clogged/blocked\n' +
+'    e.g. ท่อน้ำอ่าง4ตัน = basin 4 drain pipe is clogged (NOT "4-ton basin")\n' +
+'    When a number precedes equipment name (อ่าง4, ถัง3, ปั๊ม2), treat it as an identifier: basin 4, tank 3, pump 2\n' +
 '  • เสีย → "is faulty", "is broken", "is not functioning"\n' +
 '  • ขาด → "is broken", "is severed", "is missing" (choose by context — NEVER use "missing" if เบิก is present)\n' +
 '  • สั่น → "is vibrating", "is shaking"\n' +
+'  • งาน (in machining/polishing/production context) → "workpiece", "lens", or "surface" — NEVER translate as "work" or "job"\n' +
+'    e.g. งานยับย่น = workpiece surface is wrinkled, งานเป็นรอย = workpiece surface is scratched\n' +
+'  • ยับย่น / เป็นริ้ว → "is wrinkled", "has ripples", "rippled surface"\n' +
+'  • เพท → "plate" (a flat metal/plastic sheet component) — NEVER translate as "pet"\n' +
+'    e.g. เพทกั้น = partition plate, เพทปิด = cover plate\n' +
+'  • กั้น → "partition", "divider", "separator" — NEVER translate as "guard"\n' +
+'  • ตะแกรง → "mesh", "grid", "screen"\n' +
+'  • ทำ (when describing a fabrication/maintenance task) → "Make", "Fabricate", "Install" — use imperative form\n' +
+'    e.g. ทำเพทกั้นตะแกรง = Make a mesh partition plate\n' +
+'  • เพท / เพลท → "plate" — Thai phonetic spelling of the English word\n' +
+'    e.g. เพทกั้น = blocking plate, เพทโลหะ = metal plate\n' +
+'  • ทำ (when followed by a component/part) → "fabricate", "install", "make" — use "fabricate" when creating a new part\n' +
+'    e.g. ทำเพท = fabricate a plate, ทำแผ่น = fabricate a sheet\n' +
+'  • กั้น → "to block", "to separate", "barrier" — used as a divider/blocker\n' +
+'    e.g. เพทกั้นตะแกรง = plate to block the mesh/screen\n' +
+'  • ตะแกรง → "mesh", "screen", "grid"\n' +
 '  • ร้อน → "is overheating" (for machines), "is hot" (for surfaces)\n' +
 '  • สีแตก → "paint is cracked" or "paint is chipping" — NEVER translate as malfunction or generic fault\n' +
 '  • สีหลุด / สีล่อน → "paint is peeling" or "paint has come off"\n' +
@@ -202,6 +232,7 @@ export function useTranslate() {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'You are a facility maintenance report writer for SAP work orders. The following texts are English translations produced from a Thai-English dictionary and may be literal, fragmented, or grammatically awkward.\n\n' +
+'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. The vast majority describe a broken/faulty component, a maintenance task, or a parts requisition. Always interpret ambiguous words through this maintenance fault-report lens.\n\n' +
 'Task:\n' +
 'Rewrite each item into a clear, natural, professional maintenance report sentence.\n\n' +
 'Guidelines:\n' +
@@ -211,7 +242,7 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes used alone) are internal identifiers — OMIT them from the translation entirely. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely, whether they appear standalone, prefixed, or wrapped in brackets e.g. [PLP], [LC]. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
@@ -242,6 +273,7 @@ export function useTranslate() {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'You are a facility maintenance report writer for SAP work orders. The following texts are English translations produced from a Thai-English dictionary and may be literal, fragmented, or grammatically awkward.\n\n' +
+'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. The vast majority describe a broken/faulty component, a maintenance task, or a parts requisition. Always interpret ambiguous words through this maintenance fault-report lens.\n\n' +
 'Task:\n' +
 'Rewrite each item into a clear, natural, professional maintenance report sentence.\n\n' +
 'Guidelines:\n' +
@@ -251,7 +283,7 @@ export function useTranslate() {
 '   - Rooms / areas / buildings → "in the"\n' +
 '   - Floors / ceilings / walls → "on the"\n' +
 '   - Equipment / machines / positions → "at the"\n' +
-'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes used alone) are internal identifiers — OMIT them from the translation entirely. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
+'4. Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers — OMIT them from the translation entirely, whether they appear standalone, prefixed, or wrapped in brackets e.g. [PLP], [LC]. Keep specific tag numbers with digits (e.g. DL1, RX2), model names (e.g. KD4-1/4A), and descriptive component names (e.g. V-groove, Bra, Swift, Block, conveyor) — these describe the actual part and MUST be preserved.\n' +
 '5. Keep the sentence concise and professional.\n' +
 '6. Use present tense to describe the current condition.\n' +
 '7. Do not add assumptions or extra information not present in the original text.\n' +
