@@ -3,9 +3,7 @@ import { dictTranslate, hasThai, resetFuzzyHits, _fuzzyHits } from '../utils/tra
 
 export function useTranslate() {
   const translateFields = reactive(new Set([
-    'IW38::Description', 'IW38::Description.1',
-    'ZPUCMN::Desc.',
-    'Hours::Damage Text', 'Hours::Cause Text', 'Hours::Activity Text'
+    'IW38::Description'
   ]))
 
   const translateCache = ref({})
