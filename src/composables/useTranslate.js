@@ -182,7 +182,7 @@ export function useTranslate() {
 
 'GUIDELINES:\n' +
 '1. Write natural maintenance-report sentences — NOT word-for-word translations.\n' +
-'2. Keep the sentence concise and professional.\n' +
+'2. Keep the sentence concise and professional (aim for SAP Short Text field).\n' +
 '3. Use present tense to describe current conditions.\n' +
 '4. Do NOT add assumptions or extra information not present in the source.\n' +
 '5. Preserve ALL symptoms mentioned in the source text.\n' +
@@ -226,61 +226,61 @@ export function useTranslate() {
 'Do NOT guess a different component.\n\n' +
 
 'THAI WORD DISAMBIGUATION — always interpret these words by maintenance context, NOT literal dictionary meaning:\n' +
-
+'\n' +
 '  • เบิก → spare parts request action\n' +
 '    Translate as "Requisition [qty] [part]" or "Request [qty] [part]".\n' +
 '    Example: เบิกวาล์ว 2 ตัว = Requisition 2 valves\n' +
-
+'\n' +
 '  • ใส่ (component added to equipment) → install / fit / add\n' +
 '    Example: ใส่ Item รถเข็น = Install item on cart\n' +
-
+'\n' +
 '  • ติด (without ตั้ง) → is triggered / is active / is on / is stuck\n' +
 '    Example: alarm ติด = Alarm is triggered\n' +
-
+'\n' +
 '  • ดับ → is off / has gone out / is dead\n' +
 '    Example: ไฟดับ = Light is off\n' +
 '    Example: คอมดับ = Computer is down\n' +
-
+'\n' +
 '  • com / คอม → computer or PC (NEVER communication)\n' +
-
+'\n' +
 '  • ค้าง → is stuck / is frozen / is jammed\n' +
-
+'\n' +
 '  • หลุด → has come loose / has detached / has fallen off\n' +
-
+'\n' +
 '  • รั่ว → is leaking\n' +
-
+'\n' +
 '  • ตัน → is clogged / is blocked\n' +
 '    Example: ท่อน้ำอ่าง4ตัน = Drain pipe in basin 4 is clogged\n' +
-
+'\n' +
 '  • เสีย → is faulty / is broken / is not functioning\n' +
-
+'\n' +
 '  • ขาด → is broken / is severed / is missing (never "missing" if เบิก appears)\n' +
-
+'\n' +
 '  • สั่น → is vibrating / is shaking\n' +
-
+'\n' +
 '  • งาน (machining context) → workpiece / lens / surface\n' +
 '    Example: งานยับย่น = Workpiece surface is wrinkled\n' +
-
+'\n' +
 '  • ยับย่น / เป็นริ้ว → is wrinkled / has ripples\n' +
-
+'\n' +
 '  • เพท / เพลท → plate\n' +
 '    Example: เพทกั้น = partition plate\n' +
-
+'\n' +
 '  • กั้น → partition / divider / separator\n' +
-
+'\n' +
 '  • ตะแกรง → mesh / grid / screen\n' +
-
+'\n' +
 '  • ทำ (fabrication task) → fabricate / make\n' +
 '    Example: ทำเพท = Fabricate plate\n' +
-
+'\n' +
 '  • ร้อน → machine = is overheating, surface = is hot\n' +
-
+'\n' +
 '  • สีแตก → paint is cracked / paint is chipping\n' +
-
+'\n' +
 '  • สีหลุด / สีล่อน → paint is peeling\n' +
-
+'\n' +
 '  • แตก → is cracked\n' +
-
+'\n' +
 '  • บิ่น → is chipped\n\n' +
 
 'THAI PHONETIC LETTERS:\n' +
@@ -414,7 +414,11 @@ export function useTranslate() {
       'Always interpret ambiguous words through this maintenance fault-report lens.\n\n' +
 
       'TASK:\n' +
-      'Rewrite each item into a clear, natural, professional maintenance report sentence.\n\n' +
+      'Rewrite each item into a clear, natural, professional maintenance report sentence suitable for SAP Notification Short Text.\n\n' +
+
+      'SAP SHORT TEXT COMPATIBILITY:\n' +
+      'This sentence will be used directly in the SAP "Description" field (max 40 characters preferred, never exceed 50).\n' +
+      'Start with capital letter and end with period.\n\n' +
 
       'MAINTENANCE SENTENCE STYLE:\n' +
       'Prefer this structure when applicable:\n' +
@@ -436,14 +440,15 @@ export function useTranslate() {
 
       'GUIDELINES:\n' +
       '1. Correct grammar, word order, and phrasing so the sentence reads naturally in a maintenance report.\n' +
-      '2. Keep the sentence concise and professional.\n' +
+      '2. Keep extremely concise and professional (aim for under 40 characters / 15 words).\n' +
       '3. Use present tense to describe current conditions.\n' +
-      '4. Do NOT add assumptions, explanations, or information not present in the source text.\n' +
+      '4. Do NOT add assumptions, explanations, causes, or information not present in the source text.\n' +
       '5. Preserve ALL symptoms and conditions mentioned in the source.\n' +
       '6. NEVER merge or remove symptoms to shorten the sentence.\n' +
       '7. Keep the sentence under 20 words when possible but never remove symptoms to meet this limit.\n' +
-      '8. Prefer standard maintenance terminology such as "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-      '9. Standalone numbers without clear meaning must be removed. Keep numbers only when they indicate quantity, equipment identifier, or model code.\n\n' +
+      '8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
+      '9. Prefer standard maintenance terminology such as "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
+      '10. Standalone numbers without clear meaning must be removed. Keep numbers only when they indicate quantity, equipment identifier, or model code.\n\n' +
 
       'FAULT / ACTION CLASSIFICATION:\n' +
       'Each sentence belongs to one of these categories:\n' +
