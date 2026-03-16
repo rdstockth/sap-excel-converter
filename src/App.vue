@@ -771,93 +771,95 @@ onMounted(() => initWorker())
           </div>
         </div>
 
-        <!-- AI Translation Log Panel -->
-        <div v-if="aiLog.length > 0 || logPanelOpen" class="card">
-          <div class="card-header" style="cursor:pointer" @click="logPanelOpen = !logPanelOpen">
-            <span class="card-icon">📋</span>
-            <h2>Translation Log</h2>
-            <span class="pill" style="background:var(--accent-lt);color:var(--accent)">{{ logStats.total }} รายการ</span>
-            <span class="pill" style="margin-left:auto">{{ logPanelOpen ? 'ซ่อน ▲' : 'แสดง ▼' }}</span>
-          </div>
-
-          <div v-if="logPanelOpen" class="log-panel">
-
-            <!-- Stats bar -->
-            <div class="log-stats-bar">
-              <span class="log-stat-chip all" @click="logFilter='all'; logPage=1" :class="{active: logFilter==='all'}">
-                ทั้งหมด <strong>{{ logStats.total }}</strong>
-              </span>
-              <span class="log-stat-chip dict" @click="logFilter='dict'; logPage=1" :class="{active: logFilter==='dict'}">
-                📖 Dict <strong>{{ logStats.dict }}</strong>
-              </span>
-              <span class="log-stat-chip ai" @click="logFilter='ai'; logPage=1" :class="{active: logFilter==='ai'}">
-                🤖 AI <strong>{{ logStats.ai }}</strong>
-              </span>
-              <span v-if="logStats.aiRetry > 0" class="log-stat-chip retry" @click="logFilter='ai-retry'; logPage=1" :class="{active: logFilter==='ai-retry'}">
-                🔄 Retry <strong>{{ logStats.aiRetry }}</strong>
-              </span>
-              <div style="flex:1"></div>
-              <button class="log-btn-dl" @click.stop="downloadLog" title="Export เป็น .tsv">⬇ Export</button>
-              <button class="log-btn-clear" @click.stop="clearLog(); logPage=1" title="ล้าง log">🗑</button>
-            </div>
-
-            <!-- Search -->
-            <div style="padding: 0 12px 8px">
-              <input v-model="logSearch" @input="logPage=1" type="text" class="input-field"
-                placeholder="🔍 ค้นหาข้อความต้นฉบับหรือคำแปล..." style="width:100%;font-size:11.5px">
-            </div>
-
-            <!-- Table -->
-            <div class="log-table-wrap">
-              <table class="log-table">
-                <thead>
-                  <tr>
-                    <th style="width:34px">#</th>
-                    <th>ต้นฉบับ (Thai)</th>
-                    <th>คำแปล (English)</th>
-                    <th style="width:68px">Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="filteredLog.length === 0">
-                    <td colspan="4" style="text-align:center;color:var(--sub2);padding:18px;font-size:11.5px">ไม่พบรายการที่ตรงกัน</td>
-                  </tr>
-                  <tr v-for="(entry, i) in pagedLog" :key="entry.original + entry.source"
-                    :class="['log-row', 'log-row--' + entry.source]">
-                    <td class="log-no">{{ (logPage - 1) * 50 + i + 1 }}</td>
-                    <td class="log-original">
-                      <span class="log-text-cell" :title="entry.original">{{ entry.original }}</span>
-                    </td>
-                    <td class="log-translated">
-                      <span class="log-text-cell" :title="entry.translated">{{ entry.translated }}</span>
-                    </td>
-                    <td class="log-source">
-                      <span class="log-source-badge" :class="'badge--' + entry.source">
-                        {{ entry.source === 'dict' ? '📖' : entry.source === 'ai' ? '🤖' : '🔄' }}
-                        {{ entry.source === 'ai-retry' ? 'retry' : entry.source }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Pagination -->
-            <div v-if="totalLogPages > 1" class="log-pagination">
-              <button :disabled="logPage <= 1" @click="logPage--" class="log-page-btn">‹ ก่อน</button>
-              <span style="font-size:11.5px;color:var(--sub)">
-                หน้า {{ logPage }} / {{ totalLogPages }}
-                <span style="color:var(--sub2)">({{ filteredLog.length }} รายการ)</span>
-              </span>
-              <button :disabled="logPage >= totalLogPages" @click="logPage++" class="log-page-btn">ถัดไป ›</button>
-            </div>
-
-          </div>
-        </div>
-
       </div>
       <!-- ═══ end RIGHT ═══ -->
 
+    </div>
+  </div>
+
+  <!-- ═══ Translation Log — Full Width ═══ -->
+  <div v-if="aiLog.length > 0 || logPanelOpen" class="container log-full-wrap">
+    <div class="card log-full-card">
+      <div class="card-header" style="cursor:pointer" @click="logPanelOpen = !logPanelOpen">
+        <span class="card-icon">📋</span>
+        <h2>Translation Log</h2>
+        <span class="pill" style="background:var(--accent-lt);color:var(--accent)">{{ logStats.total }} รายการ</span>
+        <span class="pill" style="margin-left:auto">{{ logPanelOpen ? 'ซ่อน ▲' : 'แสดง ▼' }}</span>
+      </div>
+
+      <div v-if="logPanelOpen" class="log-panel">
+
+        <!-- Stats bar -->
+        <div class="log-stats-bar">
+          <span class="log-stat-chip all" @click="logFilter='all'; logPage=1" :class="{active: logFilter==='all'}">
+            ทั้งหมด <strong>{{ logStats.total }}</strong>
+          </span>
+          <span class="log-stat-chip dict" @click="logFilter='dict'; logPage=1" :class="{active: logFilter==='dict'}">
+            📖 Dict <strong>{{ logStats.dict }}</strong>
+          </span>
+          <span class="log-stat-chip ai" @click="logFilter='ai'; logPage=1" :class="{active: logFilter==='ai'}">
+            🤖 AI <strong>{{ logStats.ai }}</strong>
+          </span>
+          <span v-if="logStats.aiRetry > 0" class="log-stat-chip retry" @click="logFilter='ai-retry'; logPage=1" :class="{active: logFilter==='ai-retry'}">
+            🔄 Retry <strong>{{ logStats.aiRetry }}</strong>
+          </span>
+          <div style="flex:1"></div>
+          <button class="log-btn-dl" @click.stop="downloadLog" title="Export เป็น .tsv">⬇ Export</button>
+          <button class="log-btn-clear" @click.stop="clearLog(); logPage=1" title="ล้าง log">🗑</button>
+        </div>
+
+        <!-- Search -->
+        <div style="padding: 0 12px 8px">
+          <input v-model="logSearch" @input="logPage=1" type="text" class="input-field"
+            placeholder="🔍 ค้นหาข้อความต้นฉบับหรือคำแปล..." style="width:100%;font-size:11.5px">
+        </div>
+
+        <!-- Table -->
+        <div class="log-table-wrap">
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th style="width:42%">ต้นฉบับ (Thai)</th>
+                <th>คำแปล (English)</th>
+                <th style="width:88px">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="filteredLog.length === 0">
+                <td colspan="4" style="text-align:center;color:var(--sub2);padding:18px;font-size:11.5px">ไม่พบรายการที่ตรงกัน</td>
+              </tr>
+              <tr v-for="(entry, i) in pagedLog" :key="entry.original + entry.source"
+                :class="['log-row', 'log-row--' + entry.source]">
+                <td class="log-no">{{ (logPage - 1) * 50 + i + 1 }}</td>
+                <td class="log-original">
+                  <span class="log-text-cell" :title="entry.original">{{ entry.original }}</span>
+                </td>
+                <td class="log-translated">
+                  <span class="log-text-cell" :title="entry.translated">{{ entry.translated }}</span>
+                </td>
+                <td class="log-source">
+                  <span class="log-source-badge" :class="'badge--' + entry.source">
+                    {{ entry.source === 'dict' ? '📖' : entry.source === 'ai' ? '🤖' : '🔄' }}
+                    {{ entry.source === 'ai-retry' ? 'retry' : entry.source }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="totalLogPages > 1" class="log-pagination">
+          <button :disabled="logPage <= 1" @click="logPage--" class="log-page-btn">‹ ก่อน</button>
+          <span style="font-size:11.5px;color:var(--sub)">
+            หน้า {{ logPage }} / {{ totalLogPages }}
+            <span style="color:var(--sub2)">({{ filteredLog.length }} รายการ)</span>
+          </span>
+          <button :disabled="logPage >= totalLogPages" @click="logPage++" class="log-page-btn">ถัดไป ›</button>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -903,7 +905,14 @@ header {
   text-transform: uppercase; font-family: 'Syne', sans-serif;
   box-shadow: 0 2px 8px rgba(79,70,229,0.3);
 }
-/* ── Translation Log Panel ── */
+/* ── Translation Log — Full Width ── */
+.log-full-wrap {
+  padding-top: 0;
+  padding-bottom: 28px;
+}
+.log-full-card {
+  width: 100%;
+}
 .log-panel { padding-bottom: 4px; }
 
 .log-stats-bar {
@@ -933,33 +942,34 @@ header {
 
 .log-table-wrap {
   overflow-x: auto; overflow-y: auto;
-  max-height: 400px;
+  max-height: 560px;
   border-top: 1px solid var(--border-lt);
   border-bottom: 1px solid var(--border-lt);
 }
 .log-table {
   width: 100%; border-collapse: collapse;
-  font-size: 11.5px; font-family: 'DM Mono', monospace;
+  font-size: 12px; font-family: 'DM Mono', monospace;
+  table-layout: fixed;
 }
 .log-table thead tr {
   position: sticky; top: 0; z-index: 2;
   background: var(--bg2);
 }
 .log-table th {
-  text-align: left; font-size: 10.5px; font-weight: 600;
-  color: var(--sub); padding: 7px 10px;
+  text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--sub); padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-.log-table td { padding: 5px 10px; vertical-align: middle; border-bottom: 1px solid var(--border-lt); }
+.log-table td { padding: 6px 12px; vertical-align: middle; border-bottom: 1px solid var(--border-lt); }
 .log-row:hover td { background: var(--hover); }
 .log-row--dict td { background: rgba(5,150,105,.03); }
 .log-row--ai td   { background: rgba(139,92,246,.03); }
 .log-row--ai-retry td { background: rgba(245,158,11,.04); }
 
-.log-no { color: var(--sub2); text-align: right; font-size: 10.5px; min-width: 28px; }
-.log-original  { max-width: 220px; }
-.log-translated { max-width: 260px; }
+.log-no { color: var(--sub2); text-align: right; font-size: 10.5px; min-width: 40px; }
+.log-original  { }
+.log-translated { }
 .log-text-cell {
   display: block; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
@@ -971,7 +981,7 @@ header {
 .log-source { text-align: center; }
 .log-source-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
   white-space: nowrap;
 }
 .badge--dict    { background: #ECFDF5; color: #065F46; border: 1px solid #6EE7B7; }
