@@ -706,6 +706,8 @@ onMounted(() => initWorker())
                   <option :value="10">10 ข้อความ</option>
                   <option :value="20">20 ข้อความ</option>
                   <option :value="30">30 ข้อความ</option>
+                  <option :value="50">50 ข้อความ</option>
+                  <option :value="100">100 ข้อความ</option>
                 </select>
               </div>
 
