@@ -148,6 +148,7 @@ export function useTranslate() {
 '8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
 '9. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '10. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
+'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be translated, write your best English approximation.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -173,6 +174,7 @@ export function useTranslate() {
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
+'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -198,6 +200,7 @@ export function useTranslate() {
 '7. Do not add assumptions or extra information not present in the original text.\n' +
 '8. When describing faults, prefer standard maintenance terminology such as: "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
 '9. The sentence MUST NOT exceed 15 words. Simplify wording if needed to stay within this limit.\n\n' +
+'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances. If a text cannot be improved, return it as-is in English.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}. The number of outputs MUST match the number of inputs. No markdown, no explanations, no extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -278,8 +281,16 @@ export function useTranslate() {
         )
         translateStatus.retryAttempt = null
         const batchTs = new Date().toISOString()
+        let thaiLeakCount = 0
         batch.forEach((origText, i) => {
           if (results[i]) {
+            // ── Guard: reject result if AI returned Thai text ──
+            if (hasThai(results[i])) {
+              console.warn('[Translate] AI returned Thai in output — rejected:', results[i])
+              thaiLeakCount++
+              failedBatch.push(origText)
+              return
+            }
             translateCache.value[origText] = results[i]
             if (!skipLog) {
               aiLog.value.push({ original: origText, translated: results[i], source, batchNo: b + 1, ts: batchTs })
@@ -287,6 +298,10 @@ export function useTranslate() {
             done++
           }
         })
+        if (thaiLeakCount > 0) {
+          errors++
+          console.warn('[Translate] Batch ' + (b+1) + ': ' + thaiLeakCount + ' result(s) rejected (Thai output)')
+        }
       } catch (e) {
         console.error('Batch ' + (b+1) + ' failed:', e)
         errors++
