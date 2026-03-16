@@ -78,7 +78,7 @@ const settings = reactive({
   dictPolish:    false,
   engRewrite:    false,
   aiApiEndpoint: 'https://thaillm.setthapong-pasavet.workers.dev/',
-  batchSize:     20,
+  batchSize:     50,
   maxRetries:    2,
 })
 
@@ -707,7 +707,6 @@ onMounted(() => initWorker())
                   <option :value="20">20 ข้อความ</option>
                   <option :value="30">30 ข้อความ</option>
                   <option :value="50">50 ข้อความ</option>
-                  <option :value="100">100 ข้อความ</option>
                 </select>
               </div>
 
