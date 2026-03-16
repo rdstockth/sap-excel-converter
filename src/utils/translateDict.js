@@ -71,6 +71,8 @@ export const _dict = Object.freeze({
   "ผิดตำแหน่ง":{en:"wrong position",t:"S"},"ไม่ได้ระยะ":{en:"wrong clearance",t:"S"},
   "สแกนไม่ได้":{en:"cannot scan",t:"S"},"อ่านบาร์โค๊ตข้างเดียว":{en:"scans one side only",t:"S"},
   "ไม่อ่านบาร์โค๊ต":{en:"cannot read barcode",t:"S"},"สัญลักษณ์ขาดหาย":{en:"missing characters",t:"S"},
+  "สัญลักษณ์บาง":{en:"faint / incomplete characters",t:"S"},
+  "ร้าว":{en:"cracked",t:"S"},"รอยร้าว":{en:"hairline crack",t:"S"},
   "ไม่ชัด":{en:"unclear ",t:"S"},"กระดาษติด":{en:"paper jam",t:"S"},
   "ไม่ได้ยินเสียง":{en:"no sound",t:"S"},"ไม่มีเสียงเตือน":{en:"no alarm sound",t:"S"},
   "สกปรกมาก":{en:"very dirty",t:"S"},"สกปรก":{en:"dirty",t:"S"},
@@ -219,7 +221,16 @@ export const _dict = Object.freeze({
   "โรลเลอร์":{en:"roller",t:"C"},"ถังกวน":{en:"agitator tank",t:"C"},
   "สติวเลอร์":{en:"stirrer",t:"C"},"สติลเลอร์":{en:"stirrer",t:"C"},
   "ฝา":{en:"lid",t:"C"},"กระจก":{en:"glass",t:"C"},
-  "ฟิวเตอร์":{en:"filter",t:"C"},"คอม":{en:"PC",t:"C"},
+  // ── English loanwords / mixed-language component names ──
+  "glass":{en:"glass",t:"C"},"unit":{en:"unit",t:"C"},
+  "laser":{en:"laser",t:"C"},"leser":{en:"laser",t:"C"},
+  "machine":{en:"machine",t:"C"},"pump":{en:"pump",t:"C"},
+  "motor":{en:"motor",t:"C"},"sensor":{en:"sensor",t:"C"},
+  "valve":{en:"valve",t:"C"},"cylinder":{en:"cylinder",t:"C"},
+  "belt":{en:"belt",t:"C"},"filter":{en:"filter",t:"C"},
+  "ฟิวเตอร์":{en:"filter",t:"C"},
+  "คอมเพรสเซอร์":{en:"air compressor",t:"C",sys:"Air Compressor"},
+  "คอม":{en:"PC",t:"C"},
   "ชุดคอม":{en:"PC set",t:"C"},"คีย์บอร์ด":{en:"keyboard",t:"C"},
   "ลำโพง":{en:"speaker",t:"C"},"โทรศัพท์":{en:"telephone",t:"C"},
   "โปรเจคเตอร์":{en:"projector",t:"C"},"รีโมท":{en:"remote",t:"C"},
@@ -504,7 +515,7 @@ export const _dict = Object.freeze({
   "ตั้งความตึงสายพาน":{en:"tension belt",t:"A",sys:"Conveyor System"},"ตั้งศูนย์สายพาน":{en:"align belt",t:"A",sys:"Conveyor System"},
 
   // ⚡ 9. Laser Marking Machine
-  "หัวเลเซอร์":{en:"laser head",t:"C",sys:"Laser Marking"},"เลนส์โฟกัส":{en:"focus lens",t:"C",sys:"Laser Marking"},
+  "หัวเลเซอร์":{en:"laser head",t:"C",sys:"Laser Marking"},"เลเซอร์":{en:"laser",t:"C",sys:"Laser Marking"},"เลนส์โฟกัส":{en:"focus lens",t:"C",sys:"Laser Marking"},
   "ซอร์สเลเซอร์":{en:"laser source",t:"C",sys:"Laser Marking"},"เครื่องดูดควัน":{en:"fume extractor",t:"C",sys:"Laser Marking"},
   "เลเซอร์ไม่ยิง":{en:"laser not firing",t:"S",sys:"Laser Marking"},"มาร์คไม่ชัด":{en:"faint mark",t:"S",sys:"Laser Marking"},
   "ยิงไม่เข้า":{en:"shallow mark",t:"S",sys:"Laser Marking"},"ตัวอักษรเบี้ยว":{en:"distorted letters",t:"S",sys:"Laser Marking"},
@@ -912,7 +923,11 @@ export function tokenize(text) {
   const trie = TRIE   
   let i = 0
   while (i < chars.length) {
-    if (chars[i] === ' ') { i++; continue }
+    // treat space, comma, period (not decimal), # as separators
+    const ch = chars[i]
+    if (ch === ' ' || ch === ',' || ch === '#') { i++; continue }
+    // skip trailing period at end of string
+    if (ch === '.' && i === chars.length - 1) { i++; continue }
 
     let node = trie, lastMatch = null, lastEnd = i, j = i
     while (j < chars.length && node[chars[j]]) {
@@ -925,7 +940,9 @@ export function tokenize(text) {
       i = lastEnd
     } else {
       let end = i + 1
-      while (end < chars.length && chars[end] !== ' ') {
+      while (end < chars.length && chars[end] !== ' ' && chars[end] !== ',' && chars[end] !== '#') {
+        // stop before trailing period at end of string
+        if (chars[end] === '.' && end === chars.length - 1) break
         let n2 = trie, k2 = end, hit = false
         while (k2 < chars.length && n2[chars[k2]]) {
           n2 = n2[chars[k2]]; k2++
@@ -956,6 +973,32 @@ export function tokenize(text) {
 
 export const _normRules = [
   // ==========================================
+  // 🌐 Mixed TH-ENG Pre-processing (ต้องอยู่บนสุด — แปลงก่อนกฎอื่น)
+  // ==========================================
+
+  // Comma / slash → space  (เช่น "RX2,Leser#2,ร้าว" → "RX2 Leser#2 ร้าว")
+  [/[,،、،،]/g, ' '],
+
+  // M/c, mc, MC = Machine abbreviation (เช่น "M/c2" → "เครื่อง 2", "MC-4" → "เครื่อง 4")
+  [/\bM\/c\s*(\d+)\b/gi, 'เครื่อง $1'],
+  [/\bM\/c\b/gi, 'เครื่อง'],
+  [/\bmc\s*(\d+)\b/gi, 'เครื่อง $1'],
+
+  // Leser / Lesar → Laser (typo ภาษาอังกฤษที่เจอในโรงงาน)
+  [/\bLeser\b|\bLesar\b/gi, 'laser'],
+
+  // English symptom words → Thai (เพื่อให้ tokenizer จับได้)
+  [/\bcrack(?:ed|ing)?\b/gi, 'ร้าว'],
+  [/\bbreak(?:ing)?\b|\bbroken\b/gi, 'หัก'],
+  [/\bjam(?:med|ming)?\b/gi, 'ค้าง'],
+  [/\bleak(?:ing)?\b/gi, 'รั่ว'],
+  [/\bworn?\b/gi, 'สึก'],
+  [/\bloose\b/gi, 'หลวม'],
+  [/\bno(?:isy|ise)\b/gi, 'มีเสียงดัง'],
+  [/\bvibrat(?:e|ing|ion)\b/gi, 'สั่น'],
+  [/\boverh(?:eat|ot)(?:ing)?\b/gi, 'ร้อน'],
+
+  // ==========================================
   // 🚨 ดักคำพิมพ์ผิดที่เจอบ่อยขั้นวิกฤต (Critical Typos)
   // ==========================================
   [/อุณภูมิ|อุณภุมิ|อุณหถูมิ|อุณหภูม/g, 'อุณหภูมิ'],
@@ -984,17 +1027,17 @@ export const _normRules = [
   // 🌬️ ระบบแอร์ ชิลเลอร์ และบอยเลอร์ (HVAC & Boiler)
   // ==========================================
   [/อีแวป|อีแวบ|คอยล์เย็น|evap|evaporator/gi, 'อีแวป'],
-  [/คอนเดนเซอ|คอยร้อน|condenser/gi, 'คอนเดนเซอร์'],
+  [/คอนเดนเซอ(?!ร์)|คอยร้อน|condenser/gi, 'คอนเดนเซอร์'],
   [/เอ็กแพนชัน|เอ็กแพนชั่น|expansion valve/gi, 'เอ็กซ์แพนชั่น'],
   [/ไฮเพลสเชอร์|ไฮเพรชเชอร์|high pressure/gi, 'ไฮเพรสเชอร์'],
   [/โลเพลสเชอร์|โลเพรชเชอร์|low pressure/gi, 'โลว์เพรสเชอร์'],
   [/สตีมแทรป|สตีมแท็ป|steam trap/gi, 'สตีมแทรป'],
-  [/เบินเนอ|เบิร์นเนอ|burner/gi, 'เบิร์นเนอร์'],
+  [/เบินเนอ(?!ร์)|เบิร์นเนอ(?!ร์)|burner/gi, 'เบิร์นเนอร์'],
   [/เซฟตี้วาล(?=[^์]|$)|safety valve/gi, 'เซฟตี้วาล์ว'],
-  [/ฮีตเอ็กเชนเจอ|heat exchanger/gi, 'ฮีตเอ็กเชนเจอร์'],
+  [/ฮีตเอ็กเชนเจอ(?!ร์)|heat exchanger/gi, 'ฮีตเอ็กเชนเจอร์'],
   [/ฮีดเตอร์|ฮิตเตอร์/g, 'ฮีตเตอร์'],
-  [/บอยเลอ|boiler/gi, 'บอยเลอร์'],
-  [/คูลลิ่งทาวเวอ|cooling tower/gi, 'คูลลิ่งทาวเวอร์'],
+  [/บอยเลอ(?!ร์)|boiler/gi, 'บอยเลอร์'],
+  [/คูลลิ่งทาวเวอ(?!ร์)|cooling tower/gi, 'คูลลิ่งทาวเวอร์'],
 
   // ==========================================
   // 🕳️ ระบบลม และ แวคคั่มปั๊ม (Pneumatics & Vacuum)
@@ -1003,21 +1046,21 @@ export const _normRules = [
   [/ออยซิล|ออยซีล|ซีลน้ำมัน/g, 'ซีลน้ำมัน'],
   [/โอลิ่ง|oring|o-ring/gi, 'โอริง'],
   [/แมนิโฟล|แมนิโฟลด์|manifold/gi, 'แมนิโฟลด์'],
-  [/เรกูเลเตอ|เรกกูเลเตอ|regulator/gi, 'เรกกูเลเตอร์'],
-  [/ลูบริเคเตอ|ลูบริเคเตอร์|lubricator/gi, 'ลูบริเคเตอร์'],
-  [/ไซเลนเซอ|ตัวเก็บเสียง|silencer/gi, 'ไซเลนเซอร์'],
+  [/เรกูเลเตอ(?!ร์)|เรกกูเลเตอ(?!ร์)|regulator/gi, 'เรกกูเลเตอร์'],
+  [/ลูบริเคเตอ(?!ร์)|ลูบริเคเตอร์|lubricator/gi, 'ลูบริเคเตอร์'],
+  [/ไซเลนเซอ(?!ร์)|ตัวเก็บเสียง|silencer/gi, 'ไซเลนเซอร์'],
   [/แอร์ไนฟ|air knife/gi, 'แอร์ไนฟ์'],
   [/ออโต้เดรน|auto drain/gi, 'ออโต้เดรน'],
-  [/เซปปะเรเตอ|เซปพาเรเตอร์|separator/gi, 'เซปปะเรเตอร์'],
-  [/คอปเปอ|คอปเปอร์ลม|coupler/gi, 'คอปเปอร์'],
+  [/เซปปะเรเตอ(?!ร์)|เซปพาเรเตอร์|separator/gi, 'เซปปะเรเตอร์'],
+  [/คอปเปอ(?!ร์)|คอปเปอร์ลม|coupler/gi, 'คอปเปอร์'],
   [/โซลินอยด์|โซลินอย|โซลินอยล์/g, 'โซลินอยด์'],
   [/วาล(?=[^ว์]|$)/g, 'วาล์ว'],
   [/แรงดันลมตก|ลมตก/g, 'แรงดันลมต่ำ'],
   [/ลมไม่เข้า|ไม่มีลมมา/g, 'ไม่มีลม'],
   [/แวคคัม|แวคคั่ม|vacuum/gi, 'แวคคั่ม'],
   [/ตัวจุ๊บ|ตัวดูดชิ้นงาน|suction cup/gi, 'ตัวจุ๊บ'],
-  [/กิ๊ปเปอ|กริปเปอร์|gripper/gi, 'กิ๊ปเปอร์'],
-  [/คอมเพรสเซอ|คอมแอร์|compressor/gi, 'คอมเพรสเซอร์'],
+  [/กิ๊ปเปอ(?!ร์)|กริปเปอร์|gripper/gi, 'กิ๊ปเปอร์'],
+  [/คอมเพรสเซอ(?!ร์)|คอมแอร์|compressor/gi, 'คอมเพรสเซอร์'],
 
   // ==========================================
   // ⚙️ เครื่องกล & อุปกรณ์ (Mechanical & Hardware)
@@ -1050,28 +1093,28 @@ export const _normRules = [
   // ==========================================
   // ⚡ ไฟฟ้า คอนโทรล และอุปกรณ์เสริม (Electrical & Control)
   // ==========================================
-  [/เบรคเกอร์|เบรกเกอ|breaker/gi, 'เบรกเกอร์'],
+  [/เบรคเกอร์|เบรกเกอ(?!ร์)|breaker/gi, 'เบรกเกอร์'],
   [/สายกราวน์|สายดิน/g, 'สายกราวด์'],
   [/ปลั๊กไฟ/g, 'ปลั๊ก'],
   [/ไฟไม่มา/g, 'ไฟไม่เข้า'],
   [/ไฟช็อต|ไฟช๊อต|ช๊อต|ช๊อตต/g, 'ช็อต'],
   [/แมกเนติก|แม๊คเนติก|แมคเนติก|แมคเนติค/g, 'แมกเนติก'],
-  [/คาปาซิเตอ|คาปา|แคป|คอนเดนเซอร์ไฟ|cap bank/gi, 'คาปา'],
-  [/พาวเวอ|พาวเวอร์|เพาเวอ|power supply/gi, 'เพาเวอร์ซัพพลาย'],
+  [/คาปาซิเตอ(?!ร์)|คาปา|แคป|คอนเดนเซอร์ไฟ|cap bank/gi, 'คาปา'],
+  [/พาวเวอ(?!ร์)|พาวเวอร์|เพาเวอ(?!ร์)|power supply/gi, 'เพาเวอร์ซัพพลาย'],
   [/ซัพพลาย|ซับพลาย/g, 'เพาเวอร์ซัพพลาย'],
   [/แผงวงจร|เมนบอร์ด|บอร์ด|pcb/gi, 'แผงวงจร'],
   [/รีเล|รีเลย์|relay/gi, 'รีเลย์'],
-  [/ไทเมอ|timer/gi, 'ไทเมอร์'],
-  [/เคาท์เตอ|counter/gi, 'เคาน์เตอร์รีเลย์'],
+  [/ไทเมอ(?!ร์)|timer/gi, 'ไทเมอร์'],
+  [/เคาท์เตอ(?!ร์)|counter/gi, 'เคาน์เตอร์รีเลย์'],
   [/อาร์ทีดี|rtd/gi, 'PT100'],
   [/พีเอฟ|power factor/gi, 'พีเอฟตก'],
   [/เอนโค้เดอ(?=[^ร]|$)|เอนโค้ดเดอ|encoder/gi, 'เอ็นโค้ดเดอร์'],
   [/เทอมินอล|terminal/gi, 'เทอร์มินอล'],
-  [/บัซเซอ|ออดเตือน|buzzer/gi, 'บัซเซอร์'],
+  [/บัซเซอ(?!ร์)|ออดเตือน|buzzer/gi, 'บัซเซอร์'],
   [/บาแลมป์|บาร์แลมป์|bar lamp/gi, 'บาแลม'],
   [/แอคซอส|เอ็กซอส|exhaust fan/gi, 'แอคซอส'],
   [/โฟวเรท|โฟลเรท|flow rate/gi, 'โฟเลท'],
-  [/โฟลมิเตอ|flow meter/gi, 'โฟลมิเตอร์'],
+  [/โฟลมิเตอ(?!ร์)|flow meter/gi, 'โฟลมิเตอร์'],
 
   // ==========================================
   // 🤖 Automation, Sensor & PLC
@@ -1111,7 +1154,7 @@ export const _normRules = [
   [/ดีบล๊อก|ดีบล็อค|deblock/gi, 'ดีบล็อก'],
   [/อัลตราโซนิค|ultrasonic/gi, 'น้ำยาอัลตร้าโซนิค'],
   [/โมล|โมลด์|mold/gi, 'โมลด์'],
-  [/สติวเลอ|เครื่องกวน|stirrer/gi, 'สติวเลอร์'],
+  [/สติวเลอ(?!ร์)|เครื่องกวน|stirrer/gi, 'สติวเลอร์'],
   [/แพดพริ้นติ้ง|pad printing/gi, 'เครื่อง padprinting'],
   [/รอยขนแมว/g, 'รอยขนแมว'],
   [/ผิวส้ม/g, 'ผิวส้ม'],
@@ -1146,7 +1189,7 @@ export const _normRules = [
   // 🩺 อาการเสียที่มักพิมพ์ผิด/พิมพ์สั้นๆ (Symptoms Slang)
   // ==========================================
   [/ตกล่อง|ตกร่อง/g, 'ตกล่อง'],
-  [/เช็นเตอ|เซนเตอ|center/gi, 'เช็นเตอร์'],
+  [/เช็นเตอ(?!ร์)|เซนเตอ(?!ร์)|center/gi, 'เช็นเตอร์'],
   [/ไม่จุ๊บ|ไม่ดูดงาน/g, 'ไม่จุ๊ฟ'],
   [/ไม่ได้รอบ|รอบตก/g, 'ไม่ได้รอบ'],
   [/ตัวเลขเบิ้ล|จอเบิ้ล/g, 'ตัวเลขเบิ้ล'],
@@ -1173,7 +1216,7 @@ export const _normRules = [
   [/คาริเบท|แคล/g, 'คาริเบท'],
   [/แยงทิ้ว|แยงท่อ/g, 'แยงทิ้ว'],
   [/ล้างทิ้ว/g, 'ล้างทิ้ว'],
-  [/เมกเกอ|megger/gi, 'เมกเกอร์'],
+  [/เมกเกอ(?!ร์)|megger/gi, 'เมกเกอร์'],
   [/บายพาส|ต่อตรง/g, 'บายพาส'],
   [/อัดจารบี|อัดจาระบี|ทาจารบี/g, 'อัดจารบี'],
   [/รีบูท|reboot/gi, 'รีบูต'],
