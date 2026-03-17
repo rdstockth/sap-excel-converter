@@ -106,10 +106,48 @@ export function splitRecordsToRagTexts(records, filename, splitSize, doSplit) {
 
 // ── Merged RAG chunk ──
 export function mergedOrderToChunk(orderKey, tableData) {
+  const isIW29Mode = tableData.IW29 && tableData.IW29.length > 0
+  const isOrphan   = orderKey.startsWith('ORDER:')
+  const displayKey = isOrphan ? orderKey.replace('ORDER:', '') : orderKey
+
   const sections = []
   sections.push('════════════════════════════════')
-  sections.push('Work Order: ' + orderKey)
+
+  if (isIW29Mode) {
+    // IW29-mode: Notification เป็น primary key
+    sections.push('Notification: ' + displayKey)
+    const linkedOrder = v(tableData.IW29[0]['Order'])
+    if (linkedOrder) sections.push('Work Order: ' + linkedOrder)
+  } else if (isOrphan) {
+    sections.push('Work Order: ' + displayKey)
+    sections.push('(No linked IW29 Notification)')
+  } else {
+    sections.push('Work Order: ' + orderKey)
+  }
+
   sections.push('════════════════════════════════')
+
+  // ── IW29 section (แสดงก่อนเมื่ออยู่ใน IW29-mode) ──
+  if (isIW29Mode) {
+    const r = tableData.IW29[0]
+    const desc1 = v(r['Description']), desc2 = v(r['Description.1'])
+    const descText = desc1 && desc2 ? desc1 + ' | ' + desc2 : (desc1 || desc2 || null)
+    const bdFlag = v(r['Breakdown']), bdDur = v(r['Breakdown dur.'])
+    const breakdownText = bdFlag && bdFlag !== '0' && bdFlag !== ''
+      ? 'Breakdown: ' + (bdDur ? bdDur + ' min' : 'Yes') : null
+    sections.push('\n[Notification Info - IW29]')
+    if (descText)                    sections.push('Description: '      + descText)
+    if (v(r['Notifictn type']))      sections.push('Notification Type: ' + v(r['Notifictn type']))
+    if (v(r['Notif.date']))          sections.push('Notif. Date: '       + v(r['Notif.date']))
+    if (v(r['Notif. Time']))         sections.push('Notif. Time: '       + v(r['Notif. Time']))
+    if (v(r['Equipment']))           sections.push('Equipment: '         + v(r['Equipment']))
+    if (v(r['Cost Center']))         sections.push('Cost Center: '       + v(r['Cost Center']))
+    if (v(r['Main WorkCtr']))        sections.push('Work Center: '       + v(r['Main WorkCtr']))
+    if (v(r['User status']))         sections.push('Status: '            + v(r['User status']))
+    if (v(r['Reported by']))         sections.push('Reported By: '       + v(r['Reported by']))
+    if (v(r['Location']))            sections.push('Location: '          + v(r['Location']))
+    if (breakdownText)               sections.push(breakdownText)
+  }
   if (tableData.IW38 && tableData.IW38.length) {
     const r = tableData.IW38[0]
     const status = [v(r['System status']), v(r['User status'])].filter(Boolean).join(' | ')
@@ -157,24 +195,6 @@ export function mergedOrderToChunk(orderKey, tableData) {
       if (v(r['Repair & Maint. Ext.']))    sections.push('  Repair & Maint. Ext: '+ v(r['Repair & Maint. Ext.']) + ' THB')
     })
   }
-  if (tableData.IW29 && tableData.IW29.length) {
-    sections.push('\n[Notifications - IW29] (' + tableData.IW29.length + ' records)')
-    tableData.IW29.forEach((r, i) => {
-      sections.push('  Notification ' + (i + 1) + ': ' + (v(r['Notification']) || '-'))
-      const desc1 = v(r['Description']), desc2 = v(r['Description.1'])
-      const descText = desc1 && desc2 ? desc1 + ' | ' + desc2 : (desc1 || desc2 || null)
-      if (descText)                    sections.push('    Description: '      + descText)
-      if (v(r['Notifictn type']))      sections.push('    Type: '             + v(r['Notifictn type']))
-      if (v(r['Notif.date']))          sections.push('    Date: '             + v(r['Notif.date']))
-      if (v(r['Notif. Time']))         sections.push('    Time: '             + v(r['Notif. Time']))
-      if (v(r['User status']))         sections.push('    Status: '           + v(r['User status']))
-      if (v(r['Reported by']))         sections.push('    Reported By: '      + v(r['Reported by']))
-      if (v(r['Location']))            sections.push('    Location: '         + v(r['Location']))
-      const bdFlag = v(r['Breakdown']), bdDur = v(r['Breakdown dur.'])
-      if (bdFlag && bdFlag !== '0' && bdFlag !== '')
-        sections.push('    Breakdown: ' + (bdDur ? bdDur + ' min' : 'Yes'))
-    })
-  }
   if (tableData.IW47 && tableData.IW47.length) {    sections.push('\n[Confirmations - IW47] (' + tableData.IW47.length + ' records)')
     tableData.IW47.forEach((r, i) => {
       sections.push('  Confirmation ' + (i + 1) + ': ' + (v(r['Confirm.']) || '-'))
@@ -206,14 +226,21 @@ export function mergedOrderToChunk(orderKey, tableData) {
 }
 
 export function splitMergedRagTexts(chunks, tableNames, orderCount, splitSize, doSplit) {
+  const isIW29Mode = tableNames.includes('IW29')
+  const chunkLabel  = isIW29Mode ? 'Notification' : 'Work Order'
+  const countLabel  = isIW29Mode ? 'Total Notifications' : 'Total Orders'
+  const noteLabel   = isIW29Mode
+    ? '# Note: Each chunk = 1 Notification (linked to Work Order via IW29)'
+    : '# Note: Each chunk = 1 Work Order'
+
   if (!doSplit || !splitSize || chunks.length <= splitSize) {
-    const header = '# SAP PM Merged RAG Chunks\n# Tables: ' + tableNames + '\n# Total Orders: ' + orderCount + '\n# Generated: ' + new Date().toISOString() + '\n# Note: Each chunk = 1 Work Order\n\n'
+    const header = '# SAP PM Merged RAG Chunks\n# Tables: ' + tableNames + '\n# ' + countLabel + ': ' + orderCount + '\n# Generated: ' + new Date().toISOString() + '\n' + noteLabel + '\n\n'
     return [{ text: header + chunks.join('\n\n'), suffix: '' }]
   }
   const parts = [], totalParts = Math.ceil(chunks.length / splitSize)
   for (let p = 0; p < totalParts; p++) {
     const slice = chunks.slice(p * splitSize, (p + 1) * splitSize)
-    const hdr = '# SAP PM Merged RAG Chunks\n# Tables: ' + tableNames + '\n# Part: ' + (p + 1) + '/' + totalParts + '\n# Orders in this file: ' + slice.length + '\n# Total orders: ' + orderCount + '\n# Generated: ' + new Date().toISOString() + '\n# Note: Each chunk = 1 Work Order\n\n'
+    const hdr = '# SAP PM Merged RAG Chunks\n# Tables: ' + tableNames + '\n# Part: ' + (p + 1) + '/' + totalParts + '\n# ' + chunkLabel + 's in this file: ' + slice.length + '\n# Total ' + chunkLabel.toLowerCase() + 's: ' + orderCount + '\n# Generated: ' + new Date().toISOString() + '\n' + noteLabel + '\n\n'
     parts.push({ text: hdr + slice.join('\n\n'), suffix: '_part' + (p + 1) + 'of' + totalParts })
   }
   return parts
