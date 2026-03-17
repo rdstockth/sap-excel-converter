@@ -8,6 +8,7 @@ export function detectTableType(records) {
   if (has('order number') && has('g/r cost') && has('gr/gi'))       return 'ZPM02'
   if (has('mn type') && has('working time') && has('break down'))   return 'ZPUCMN'
   if (has('mo no') && has('damage code') && has('cause code'))      return 'Hours'
+  if (has('notification') && has('notif.date') && has('notifictn type') && has('breakdown')) return 'IW29'
   return 'generic'
 }
 
@@ -44,6 +45,30 @@ export function hoursToText(r) {
   return lines(['[Hours] Work Order ' + v(r['MO no.']) + ' | Type: ' + v(r['MO Type']), fmt('Description', r['Description']), fmt('Notification', r['MN no.']), fmt('Equipment', r['Equipment']), fmt('Functional Location', r['Functional Location']), fmt('Inventory Number', r['Inventory number']), fmt('Cost Center', r['Cost Center']), fmt('Object Part', r['Object Part Text']), damage ? 'Damage: ' + damage : null, cause ? 'Cause: ' + cause : null, action ? 'Action: ' + action : null, fmt('MO Created Date', r['MO Created Date']), fmt('TECO Date', r['MO Teco Da']), fmt('Actual Labor Duration', r['Act. Labor duration']), fmt('Spare Part Cost (THB)', r['Spare Part Cost']), fmt('Consumed SP Cost (THB)', r['Consmpt SP Cost']), fmt('TS Service Cost (THB)', r['TS service Cost']), fmt('Total Cost (THB)', r['Total Cost'])])
 }
 
+export function iw29ToText(r) {
+  const desc1 = v(r['Description']), desc2 = v(r['Description.1'])
+  const descText = desc1 && desc2 ? desc1 + ' | ' + desc2 : (desc1 || desc2 || null)
+  const bdDur = v(r['Breakdown dur.'])
+  const bdFlag = v(r['Breakdown'])
+  const breakdownText = bdFlag && bdFlag !== '0' && bdFlag !== ''
+    ? 'Breakdown' + (bdDur ? ': ' + bdDur + ' min' : '') : null
+  return lines([
+    '[IW29] Notification ' + v(r['Notification']) + ' | Order: ' + v(r['Order']),
+    descText ? 'Description: ' + descText : null,
+    fmt('Equipment', r['Equipment']),
+    fmt('Notification Type', r['Notifictn type']),
+    fmt('Notif. Date', r['Notif.date']),
+    fmt('Notif. Time', r['Notif. Time']),
+    fmt('Cost Center', r['Cost Center']),
+    fmt('Work Center', r['Main WorkCtr']),
+    fmt('User Status', r['User status']),
+    fmt('Reported By', r['Reported by']),
+    fmt('Location', r['Location']),
+    fmt('Sort Field', r['Sort field']),
+    breakdownText
+  ])
+}
+
 export function genericToText(r) {
   return Object.entries(r).filter(([, val]) => val !== null && val !== '').map(([key, val]) => key + ': ' + val).join('\n')
 }
@@ -52,6 +77,7 @@ export function recordToChunk(record, tableType) {
   switch (tableType) {
     case 'IW38':   return iw38ToText(record)
     case 'IW47':   return iw47ToText(record)
+    case 'IW29':   return iw29ToText(record)
     case 'ZPM02':  return zpm02ToText(record)
     case 'ZPUCMN': return zpucmnToText(record)
     case 'Hours':  return hoursToText(record)
@@ -131,8 +157,25 @@ export function mergedOrderToChunk(orderKey, tableData) {
       if (v(r['Repair & Maint. Ext.']))    sections.push('  Repair & Maint. Ext: '+ v(r['Repair & Maint. Ext.']) + ' THB')
     })
   }
-  if (tableData.IW47 && tableData.IW47.length) {
-    sections.push('\n[Confirmations - IW47] (' + tableData.IW47.length + ' records)')
+  if (tableData.IW29 && tableData.IW29.length) {
+    sections.push('\n[Notifications - IW29] (' + tableData.IW29.length + ' records)')
+    tableData.IW29.forEach((r, i) => {
+      sections.push('  Notification ' + (i + 1) + ': ' + (v(r['Notification']) || '-'))
+      const desc1 = v(r['Description']), desc2 = v(r['Description.1'])
+      const descText = desc1 && desc2 ? desc1 + ' | ' + desc2 : (desc1 || desc2 || null)
+      if (descText)                    sections.push('    Description: '      + descText)
+      if (v(r['Notifictn type']))      sections.push('    Type: '             + v(r['Notifictn type']))
+      if (v(r['Notif.date']))          sections.push('    Date: '             + v(r['Notif.date']))
+      if (v(r['Notif. Time']))         sections.push('    Time: '             + v(r['Notif. Time']))
+      if (v(r['User status']))         sections.push('    Status: '           + v(r['User status']))
+      if (v(r['Reported by']))         sections.push('    Reported By: '      + v(r['Reported by']))
+      if (v(r['Location']))            sections.push('    Location: '         + v(r['Location']))
+      const bdFlag = v(r['Breakdown']), bdDur = v(r['Breakdown dur.'])
+      if (bdFlag && bdFlag !== '0' && bdFlag !== '')
+        sections.push('    Breakdown: ' + (bdDur ? bdDur + ' min' : 'Yes'))
+    })
+  }
+  if (tableData.IW47 && tableData.IW47.length) {    sections.push('\n[Confirmations - IW47] (' + tableData.IW47.length + ' records)')
     tableData.IW47.forEach((r, i) => {
       sections.push('  Confirmation ' + (i + 1) + ': ' + (v(r['Confirm.']) || '-'))
       if (v(r['Created By']))          sections.push('    Technician: ' + v(r['Created By']))
