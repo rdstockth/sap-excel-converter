@@ -175,10 +175,10 @@ export function useTranslate() {
 'Equipment / machines / positions → "at the"\n\n' +
 
 'EQUIPMENT CODE RULE:\n' +
-'Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers.\n' +
+'Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm and similar short prefixes regardless of case) are internal identifiers.\n' +
 'OMIT these codes entirely from the translation whether standalone or inside brackets.\n' +
-'Examples to REMOVE: [PLP], LC, RX.\n' +
-'Keep identifiers that contain digits or describe real components such as DL1, RX2, KD4-1/4A, V-groove, Bra, Swift, Block, conveyor.\n\n' +
+'Examples to REMOVE: [PLP], LC, RX, lc, pcm.\n' +
+'Keep identifiers that contain digits or describe real components such as DL1, RX2, KD4-1/4A, V-groove, Bra, Swift, Block, conveyor, He Cap2, MC2, QD75.\n\n' +
 
 'GUIDELINES:\n' +
 '1. Write natural maintenance-report sentences — NOT word-for-word translations.\n' +
@@ -283,6 +283,14 @@ export function useTranslate() {
 '\n' +
 '  • บิ่น → is chipped\n\n' +
 
+'SPECIFIC PATTERN RULES:\n' +
+'  • "เบิกของ Order [part with number]": Translate as "Requisition [full part with number]". Do not split the number as quantity.\n' +
+'    Example: (LC)เบิกของ Order He Cap2 = Requisition He Cap2\n' +
+'\n' +
+'  • "[codes] [component] ตอน[measurement]": Translate as fault condition "[component] error when [measurement] at [location]".\n' +
+'    Example: lc pcm MC2 QD75 ตอนวัดค่าUV = Error QD75 when UV measurement at MC2\n' +
+'    (Omit codes; use maintenance fault-report context)\n\n' +
+
 'THAI PHONETIC LETTERS:\n' +
 'When "ตัว + Thai phonetic letter" refers to a printed character, convert it to the English letter.\n' +
 'Examples: ตัวอาร์ = letter R, ตัวบี = letter B, ตัวเอ็ม = letter M.\n' +
@@ -329,9 +337,9 @@ export function useTranslate() {
 'Equipment / machines / positions → "at the"\n\n' +
 
 'EQUIPMENT CODE RULE:\n' +
-'Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes) are internal identifiers.\n' +
+'Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm and similar short prefixes regardless of case) are internal identifiers.\n' +
 'OMIT these codes entirely whether standalone or inside brackets such as [PLP] or [LC].\n' +
-'Keep identifiers that contain digits or represent real components such as DL1, RX2, KD4-1/4A, V-groove, Bra, Swift, Block, conveyor.\n\n' +
+'Keep identifiers that contain digits or represent real components such as DL1, RX2, KD4-1/4A, V-groove, Bra, Swift, Block, conveyor, He Cap2, MC2, QD75.\n\n' +
 
 'GUIDELINES:\n' +
 '1. Correct grammar, word order, and phrasing so the sentence reads naturally in a maintenance report.\n' +
@@ -371,25 +379,28 @@ export function useTranslate() {
 'Incorrect: Belt has come loose from the pulley due to wear.\n\n' +
 
 'CONTEXT CORRECTION — if the dictionary produced incorrect word choices, fix them:\n' +
-
+'\n' +
 '  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
 '    Example: "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
-
+'\n' +
 '  • "is missing", "put in", or "insert" from ใส่ (on equipment) → change to "Install" or "Add"\n' +
 '    Example: "item on cart is missing" → "Install item on cart"\n' +
-
+'\n' +
 '  • "install" or "attach" from ติด (without ตั้ง) → change to "is triggered", "is active", or "is stuck"\n' +
 '    Example: "install alarm" → "Alarm is triggered"\n' +
-
+'\n' +
 '  • "cut" or "lack" from ขาด → rewrite as "is severed", "is broken", or "is missing" depending on context\n' +
-
+'\n' +
 '  • "attach stuck" or "stick" from ติดขัด → rewrite as "is jammed" or "is stuck"\n' +
-
+'\n' +
 '  • "extinguish" or "turn off" from ดับ in power context → rewrite as "power is out" or "is off"\n' +
-
+'\n' +
 '  • "malfunction" or generic fault from สีแตก → rewrite as "paint is cracked"\n' +
-
-'  • "malfunction" from สีหลุด or สีล่อน → rewrite as "paint is peeling"\n\n' +
+'\n' +
+'  • "malfunction" from สีหลุด or สีล่อน → rewrite as "paint is peeling"\n' +
+'\n' +
+'  • "lc pcm MC2 QD75 when measure UV" or similar literal → "Error QD75 when UV measurement at MC2"\n' +
+'  • "เบิกของ Order He Cap2" literal → "Requisition He Cap2" (keep trailing number as part of name)\n\n' +
 
 'CRITICAL: ALL output values MUST be English only. Never output Thai characters.\n\n' +
 
@@ -407,82 +418,106 @@ export function useTranslate() {
     const indexedInput = _buildIndexed(texts)
     const prompt =
       'You are a facility maintenance report writer for SAP work orders. The following texts are English translations produced from a Thai-English dictionary and may be literal, fragmented, or grammatically awkward.\n\n' +
-      'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. The vast majority describe:\n' +
-      '  - A broken, faulty, or abnormal component\n' +
-      '  - A maintenance task to perform (fabricate, install, replace, adjust)\n' +
-      '  - A spare parts requisition\n' +
-      'Always interpret ambiguous words through this maintenance fault-report lens.\n\n' +
+'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. The vast majority describe:\n' +
+'  - A broken, faulty, or abnormal component\n' +
+'  - A maintenance task to perform (fabricate, install, replace, adjust)\n' +
+'  - A spare parts requisition\n' +
+'Always interpret ambiguous words through this maintenance fault-report lens.\n\n' +
 
-      'TASK:\n' +
-      'Rewrite each item into a clear, natural, professional maintenance report sentence suitable for SAP Notification Short Text.\n\n' +
+'TASK:\n' +
+'Rewrite each item into a clear, natural, professional maintenance report sentence suitable for SAP Notification Short Text.\n\n' +
 
-      'SAP SHORT TEXT COMPATIBILITY:\n' +
-      'This sentence will be used directly in the SAP "Description" field (max 40 characters preferred, never exceed 50).\n' +
-      'Start with capital letter and end with period.\n\n' +
+'SAP SHORT TEXT COMPATIBILITY:\n' +
+'This sentence will be used directly in the SAP "Description" field (max 40 characters preferred, never exceed 50).\n' +
+'Start with capital letter and end with period.\n\n' +
 
-      'MAINTENANCE SENTENCE STYLE:\n' +
-      'Prefer this structure when applicable:\n' +
-      '"The [component] in/at/on the [location] is/has [symptom]."\n' +
-      'Examples:\n' +
-      'Pipe in the washing tank is leaking.\n' +
-      'Sensor at the conveyor is not functioning.\n' +
-      'Drain pipe in basin 4 is clogged.\n\n' +
+'MAINTENANCE SENTENCE STYLE:\n' +
+'Prefer this structure when applicable:\n' +
+'"The [component] in/at/on the [location] is/has [symptom]."\n' +
+'Examples:\n' +
+'Pipe in the washing tank is leaking.\n' +
+'Sensor at the conveyor is not functioning.\n' +
+'Drain pipe in basin 4 is clogged.\n\n' +
 
-      'PREPOSITION RULES:\n' +
-      'Rooms / areas / buildings → "in the"\n' +
-      'Floors / ceilings / walls → "on the"\n' +
-      'Equipment / machines / positions → "at the"\n\n' +
+'PREPOSITION RULES:\n' +
+'Rooms / areas / buildings → "in the"\n' +
+'Floors / ceilings / walls → "on the"\n' +
+'Equipment / machines / positions → "at the"\n\n' +
 
-      'EQUIPMENT CODE RULE:\n' +
-      'Equipment line or zone codes such as LC, RX, PLP, DL, IW, ZPM, PCM and similar short uppercase prefixes are internal identifiers.\n' +
-      'OMIT these codes entirely whether standalone or inside brackets like [PLP] or [LC].\n' +
-      'Keep identifiers containing digits or real component names such as DL1, RX2, KD4-1/4A, V-groove, Bra, Swift, Block, conveyor.\n\n' +
+'EQUIPMENT CODE RULE:\n' +
+'Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm and similar short prefixes regardless of case) are internal identifiers.\n' +
+'OMIT these codes entirely whether standalone or inside brackets such as [PLP] or [LC].\n' +
+'Keep identifiers that contain digits or represent real components such as DL1, RX2, KD4-1/4A, V-groove, Bra, Swift, Block, conveyor, He Cap2, MC2, QD75.\n\n' +
 
-      'GUIDELINES:\n' +
-      '1. Correct grammar, word order, and phrasing so the sentence reads naturally in a maintenance report.\n' +
-      '2. Keep extremely concise and professional (aim for under 40 characters / 15 words).\n' +
-      '3. Use present tense to describe current conditions.\n' +
-      '4. Do NOT add assumptions, explanations, causes, or information not present in the source text.\n' +
-      '5. Preserve ALL symptoms and conditions mentioned in the source.\n' +
-      '6. NEVER merge or remove symptoms to shorten the sentence.\n' +
-      '7. Keep the sentence under 20 words when possible but never remove symptoms to meet this limit.\n' +
-      '8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
-      '9. Prefer standard maintenance terminology such as "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
-      '10. Standalone numbers without clear meaning must be removed. Keep numbers only when they indicate quantity, equipment identifier, or model code.\n\n' +
+'GUIDELINES:\n' +
+'1. Correct grammar, word order, and phrasing so the sentence reads naturally in a maintenance report.\n' +
+'2. Keep extremely concise and professional (aim for under 40 characters / 15 words).\n' +
+'3. Use present tense to describe current conditions.\n' +
+'4. Do NOT add assumptions, explanations, causes, or information not present in the source text.\n' +
+'5. Preserve ALL symptoms and conditions mentioned in the source.\n' +
+'6. NEVER merge or remove symptoms to shorten the sentence.\n' +
+'7. Keep the sentence under 20 words when possible but never remove symptoms to meet this limit.\n' +
+'8. For water supply problems use "has no water flow" (NOT "is not flowing").\n' +
+'9. Prefer standard maintenance terminology such as "is damaged", "is leaking", "is loose", "is not functioning", "is clogged", or "is broken".\n' +
+'10. Standalone numbers without clear meaning must be removed. Keep numbers only when they indicate quantity, equipment identifier, or model code.\n\n' +
 
-      'FAULT / ACTION CLASSIFICATION:\n' +
-      'Each sentence belongs to one of these categories:\n' +
-      '  A. Fault condition\n' +
-      '  B. Maintenance action\n' +
-      '  C. Spare parts requisition\n' +
-      'Rewrite the sentence while preserving the original category.\n' +
-      'Examples:\n' +
-      'Fault → Pump motor is vibrating.\n' +
-      'Action → Install valve on tank.\n' +
-      'Requisition → Requisition 2 valves.\n\n' +
+'FAULT / ACTION CLASSIFICATION:\n' +
+'Each sentence belongs to one of these categories:\n' +
+'  A. Fault condition\n' +
+'  B. Maintenance action\n' +
+'  C. Spare parts requisition\n' +
+'Rewrite the sentence while preserving the original category.\n' +
+'Examples:\n' +
+'Fault → Pump motor is vibrating.\n' +
+'Action → Install valve on tank.\n' +
+'Requisition → Requisition 2 valves.\n\n' +
 
-      'HALLUCINATION GUARD:\n' +
-      'The rewritten sentence MUST remain strictly grounded in the source text.\n' +
-      'Do NOT invent components, causes, locations, quantities, or actions.\n' +
-      'Do NOT infer missing information.\n' +
-      'Rewrite ONLY the information present in the source sentence.\n\n' +
+'HALLUCINATION GUARD:\n' +
+'The rewritten sentence MUST remain strictly grounded in the source text.\n' +
+'Do NOT invent components, causes, locations, quantities, or actions.\n' +
+'Do NOT infer missing information.\n' +
+'Rewrite ONLY the information present in the source sentence.\n\n' +
 
-      'ANTI-OVERTRANSLATION RULE:\n' +
-      'Do not expand the meaning beyond the original sentence.\n' +
-      'Example:\n' +
-      'Input: Belt loose\n' +
-      'Correct: Belt has come loose.\n' +
-      'Incorrect: Belt has come loose from the pulley due to wear.\n\n' +
+'ANTI-OVERTRANSLATION RULE:\n' +
+'Do not expand the meaning beyond the original sentence.\n' +
+'Example:\n' +
+'Input: Belt loose\n' +
+'Correct: Belt has come loose.\n' +
+'Incorrect: Belt has come loose from the pulley due to wear.\n\n' +
 
-      'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances.\n' +
-      'If a text cannot be improved, return it as-is in English.\n\n' +
+'CONTEXT CORRECTION — if the dictionary produced incorrect word choices, fix them:\n' +
+'\n' +
+'  • "missing", "withdraw", or "draw" from เบิก → change to "Requisition" or "Request spare part"\n' +
+'    Example: "valve is missing 2" → "Requisition 2 valve KD4-1/4A"\n' +
+'\n' +
+'  • "is missing", "put in", or "insert" from ใส่ (on equipment) → change to "Install" or "Add"\n' +
+'    Example: "item on cart is missing" → "Install item on cart"\n' +
+'\n' +
+'  • "install" or "attach" from ติด (without ตั้ง) → change to "is triggered", "is active", or "is stuck"\n' +
+'    Example: "install alarm" → "Alarm is triggered"\n' +
+'\n' +
+'  • "cut" or "lack" from ขาด → rewrite as "is severed", "is broken", or "is missing" depending on context\n' +
+'\n' +
+'  • "attach stuck" or "stick" from ติดขัด → rewrite as "is jammed" or "is stuck"\n' +
+'\n' +
+'  • "extinguish" or "turn off" from ดับ in power context → rewrite as "power is out" or "is off"\n' +
+'\n' +
+'  • "malfunction" or generic fault from สีแตก → rewrite as "paint is cracked"\n' +
+'\n' +
+'  • "malfunction" from สีหลุด or สีล่อน → rewrite as "paint is peeling"\n' +
+'\n' +
+'  • "lc pcm MC2 QD75 when measure UV" or similar literal → "Error QD75 when UV measurement at MC2"\n' +
+'  • "เบิกของ Order He Cap2" literal → "Requisition He Cap2" (keep trailing number as part of name)\n\n' +
 
-      'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}.\n' +
-      'The number of outputs MUST match the number of inputs.\n' +
-      'Never reorder indexes.\n' +
-      'No markdown, no explanations, no extra text.\n\n' +
+'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters (ก-๙) in any output value under any circumstances.\n' +
+'If a text cannot be improved, return it as-is in English.\n\n' +
 
-      'Input:\n' + JSON.stringify(indexedInput)
+'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}.\n' +
+'The number of outputs MUST match the number of inputs.\n' +
+'Never reorder indexes.\n' +
+'No markdown, no explanations, no extra text.\n\n' +
+
+'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
