@@ -668,7 +668,7 @@ onMounted(() => initWorker())
             <div class="section-label">🌐 AI Translation</div>
 
             <div class="setting-row">
-              <div><div class="setting-label">🤖 แปล Description ไทย → อังกฤษ</div><div class="setting-sub">ส่ง field ภาษาไทยจาก IW38 ให้ AI แปลก่อน export</div></div>
+              <div><div class="setting-label">🤖 แปล Description ไทย → อังกฤษ</div><div class="setting-sub">ส่ง field ภาษาไทยจาก IW29 / IW38 ให้ AI แปลก่อน export</div></div>
               <label class="toggle"><input type="checkbox" v-model="settings.aiTranslate"><div class="toggle-track"></div></label>
             </div>
 
@@ -696,7 +696,7 @@ onMounted(() => initWorker())
                 <div v-if="settings.engRewrite" style="padding-top:4px;border-top:1px solid #BBF7D0">
                   <div class="setting-sub" style="margin-bottom:5px;color:#166534">🏷️ เฉพาะ PM Type</div>
                   <div style="display:flex;gap:5px;flex-wrap:wrap">
-                    <button v-for="t in ['PM01','PM06','PM09','PM11']" :key="t"
+                    <button v-for="t in ['PM01','PM06','PM09','PM11','M1','M2']" :key="t"
                       class="req-table-btn" :class="{active: engRewritePmTypes.has(t)}"
                       style="border-color:#86EFAC;color:#166534"
                       :style="engRewritePmTypes.has(t) ? {background:'#166534',color:'#fff',borderColor:'#166534'} : {}"
@@ -738,7 +738,7 @@ onMounted(() => initWorker())
               <div>
                 <div class="setting-sub" style="margin-bottom:5px">📋 Fields ที่จะแปล</div>
                 <div style="display:flex;flex-wrap:wrap;gap:5px">
-                  <button v-for="field in ['IW38::Description','IW38::Description.1','ZPUCMN::Desc.','Hours::Damage Text','Hours::Cause Text','Hours::Activity Text','IW47::Confirmation text','ZPM02::Description']"
+                  <button v-for="field in ['IW29::Description','IW29::Description.1','IW38::Description','IW38::Description.1','ZPUCMN::Desc.','Hours::Damage Text','Hours::Cause Text','Hours::Activity Text','IW47::Confirmation text','ZPM02::Description']"
                     :key="field" class="field-check-btn" :class="{on: translateFields.has(field)}"
                     @click="toggleField(field)">{{ field.replace('::',' : ') }}</button>
                 </div>
