@@ -3,6 +3,7 @@ import { dictTranslate, hasThai, resetFuzzyHits, _fuzzyHits } from '../utils/tra
 
 export function useTranslate() {
   const translateFields = reactive(new Set([
+    'IW29::Description',
     'IW38::Description'
   ]))
 
