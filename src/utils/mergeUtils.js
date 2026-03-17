@@ -28,31 +28,83 @@ export function getOrderKeyRaw(record, tableType) {
   }
 }
 
-export function buildOrderMap(allTableData) {
-  const orderMap = {}
+// IW29-mode: key by Notification number, link other tables via Order field
+function buildNotificationMap(allTableData) {
+  const notifMap = {}
 
+  // Step 1: index IW29 records by Notification number
+  for (const record of allTableData['IW29']) {
+    if (!record) continue
+    const notifKey = normalizeKey(v(record['Notification']))
+    if (!notifKey) continue
+    if (!notifMap[notifKey]) {
+      notifMap[notifKey] = Object.fromEntries(KNOWN_TABLES.map(t => [t, []]))
+    }
+    notifMap[notifKey]['IW29'].push(record)
+  }
+
+  // Step 2: build reverse lookup  orderKey → Set<notifKey>  from IW29.Order
+  const orderToNotifs = {}
+  for (const [notifKey, td] of Object.entries(notifMap)) {
+    for (const r of td['IW29']) {
+      const orderKey = normalizeKey(v(r['Order']))
+      if (!orderKey) continue
+      if (!orderToNotifs[orderKey]) orderToNotifs[orderKey] = new Set()
+      orderToNotifs[orderKey].add(notifKey)
+    }
+  }
+
+  // Step 3: distribute IW38 / IW47 / ZPM02 / ZPUCMN / Hours into notification buckets
+  for (const [tableType, recs] of Object.entries(allTableData)) {
+    if (tableType === 'IW29' || !Array.isArray(recs)) continue
+    for (const record of recs) {
+      if (!record) continue
+      const orderKey = getOrderKey(record, tableType)
+      if (!orderKey) continue
+      const notifKeys = orderToNotifs[orderKey]
+      if (notifKeys && notifKeys.size) {
+        for (const nk of notifKeys) {
+          if (!Array.isArray(notifMap[nk][tableType])) notifMap[nk][tableType] = []
+          notifMap[nk][tableType].push(record)
+        }
+      } else {
+        // orphan order: ไม่มี IW29 notification — เก็บไว้ใน bucket พิเศษ
+        const orphanKey = 'ORDER:' + orderKey
+        if (!notifMap[orphanKey]) {
+          notifMap[orphanKey] = Object.fromEntries(KNOWN_TABLES.map(t => [t, []]))
+        }
+        if (!Array.isArray(notifMap[orphanKey][tableType])) notifMap[orphanKey][tableType] = []
+        notifMap[orphanKey][tableType].push(record)
+      }
+    }
+  }
+
+  return notifMap
+}
+
+export function buildOrderMap(allTableData) {
+  // IW29-mode: ถ้ามีข้อมูล IW29 ให้ใช้ Notification เป็น primary key
+  if (Array.isArray(allTableData['IW29']) && allTableData['IW29'].length > 0) {
+    return buildNotificationMap(allTableData)
+  }
+
+  // Order-mode: logic เดิม
+  const orderMap = {}
   for (const [tableType, recs] of Object.entries(allTableData)) {
     if (!Array.isArray(recs)) continue
-
     for (const record of recs) {
       if (!record) continue
       const key = getOrderKey(record, tableType)
       if (!key) continue
-
       if (!orderMap[key]) {
-        // Bug 5 fix: initialise เฉพาะ KNOWN_TABLES เป็น array, dynamic tables จะถูกเพิ่มต่อ
         orderMap[key] = Object.fromEntries(KNOWN_TABLES.map(t => [t, []]))
       }
-
-      // Bug 5 fix: ถ้า tableType ไม่อยู่ใน KNOWN_TABLES (เช่น 'generic') ให้สร้าง array ใหม่แทนที่จะทิ้ง
       if (!Array.isArray(orderMap[key][tableType])) {
         orderMap[key][tableType] = []
       }
-
       orderMap[key][tableType].push(record)
     }
   }
-
   return orderMap
 }
 
