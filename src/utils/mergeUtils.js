@@ -1,6 +1,6 @@
 import { v } from './tableDetect.js'
 
-const KNOWN_TABLES = ['IW38', 'IW47', 'ZPM02', 'ZPUCMN', 'Hours']
+const KNOWN_TABLES = ['IW38', 'IW47', 'IW29', 'ZPM02', 'ZPUCMN', 'Hours']
 
 export function normalizeKey(raw) {
   if (raw === undefined || raw === null) return null
@@ -18,6 +18,7 @@ export function getOrderKeyRaw(record, tableType) {
   switch (tableType) {
     case 'IW38':
     case 'IW47':
+    case 'IW29':
     case 'ZPUCMN': return v(record['Order'])
     case 'ZPM02':  return v(record['Order Number'])
     case 'Hours':  return v(record['MO no.'])
