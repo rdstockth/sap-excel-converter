@@ -92,7 +92,7 @@ function togglePmType(t) {
 
 // ── Merge Filter ──
 const minTableCount = ref(3)
-const requiredTables = reactive({ IW38: true, IW47: false, ZPM02: false, ZPUCMN: false, Hours: false })
+const requiredTables = reactive({ IW38: true, IW47: false, IW29: false, ZPM02: false, ZPUCMN: false, Hours: false })
 const filterStats    = ref(null)
 let _lastRawOrderMap = null
 
@@ -342,17 +342,25 @@ async function mergeAndRag() {
     }
 
     const orderMap = filteredOrderMap
+    const isIW29Mode = Array.isArray(allTableData['IW29']) && allTableData['IW29'].length > 0
+    const primaryLabel = isIW29Mode ? 'notification' : 'order'
     const mergedRecords = Object.entries(orderMap).map(([orderKey, td]) => ({
-      order: orderKey, IW38: td.IW38.length ? td.IW38 : null, IW47: td.IW47.length ? td.IW47 : null,
-      ZPM02: td.ZPM02.length ? td.ZPM02 : null, ZPUCMN: td.ZPUCMN.length ? td.ZPUCMN : null, Hours: td.Hours.length ? td.Hours : null
+      [primaryLabel]: orderKey,
+      IW29:   td.IW29?.length   ? td.IW29   : null,
+      IW38:   td.IW38?.length   ? td.IW38   : null,
+      IW47:   td.IW47?.length   ? td.IW47   : null,
+      ZPM02:  td.ZPM02?.length  ? td.ZPM02  : null,
+      ZPUCMN: td.ZPUCMN?.length ? td.ZPUCMN : null,
+      Hours:  td.Hours?.length  ? td.Hours  : null
     }))
 
     const orderCount = Object.keys(orderMap).length
-    const chunks     = Object.entries(orderMap).map(([k, td], idx) => '--- Order '+(idx+1)+'/'+orderCount+' ---\n'+mergedOrderToChunk(k, td))
+    const chunkWord  = isIW29Mode ? 'Notification' : 'Order'
+    const chunks     = Object.entries(orderMap).map(([k, td], idx) => '--- ' + chunkWord + ' '+(idx+1)+'/'+orderCount+' ---\n'+mergedOrderToChunk(k, td))
     const now        = new Date().toISOString().replace(/[-T:Z]/g,'').slice(0,15)
     const tableNames = Object.keys(allTableData).join(', ')
 
-    progress.pct = 100; progress.label = 'Merged ' + orderCount + ' Orders จาก ' + files.value.length + ' ไฟล์'
+    progress.pct = 100; progress.label = 'Merged ' + orderCount + ' ' + chunkWord + 's จาก ' + files.value.length + ' ไฟล์'
 
     addDlEntry('MERGED_'+now+'.json',  createObjectUrl(JSON.stringify(mergedRecords, null, 2),'application/json'), orderCount, 'merged')
     addDlEntry('MERGED_'+now+'.jsonl', createObjectUrl(mergedRecords.map(r=>JSON.stringify(r)).join('\n'),'application/x-ndjson'), orderCount, 'merged-jsonl')
@@ -363,12 +371,12 @@ async function mergeAndRag() {
     // Best sample preview
     const sampleKey = Object.keys(orderMap).reduce((best, k) => getTableScore(orderMap[k]) > getTableScore(orderMap[best]) ? k : best, Object.keys(orderMap)[0])
     if (sampleKey) {
-      const sc = ['IW38','IW47','ZPM02','ZPUCMN','Hours'].filter(t => orderMap[sampleKey][t]?.length > 0).length
-      showPreview(null, '# ตัวอย่าง Order ที่มีข้อมูลครบที่สุด (' + sc + ' tables)\n\n' + mergedOrderToChunk(sampleKey, orderMap[sampleKey]), 'rag')
+      const sc = ['IW29','IW38','IW47','ZPM02','ZPUCMN','Hours'].filter(t => orderMap[sampleKey][t]?.length > 0).length
+      showPreview(null, '# ตัวอย่าง ' + chunkWord + ' ที่มีข้อมูลครบที่สุด (' + sc + ' tables)\n\n' + mergedOrderToChunk(sampleKey, orderMap[sampleKey]), 'rag')
     }
 
     const multiTableCount = Object.keys(orderMap).filter(k => getTableScore(orderMap[k]) > 1).length
-    showToast('✅ ' + orderCount + ' Orders | 🔗 Match หลาย table: ' + multiTableCount)
+    showToast('✅ ' + orderCount + ' ' + chunkWord + 's | 🔗 Match หลาย table: ' + multiTableCount)
   } finally {
     // Bug 1 fix: รับประกันว่า merging และ progress จะถูก reset เสมอ แม้เกิด error
     merging.value = false
@@ -390,7 +398,8 @@ function updateFilterStats(rawOrderMap, filteredOrderMap) {
   const rawCount = Object.keys(rawOrderMap).length
   const filteredCount = Object.keys(filteredOrderMap).length
   const removed = rawCount - filteredCount
-  filterStats.value = { rawCount, filteredCount, removed, filterOn: settings.filterComplete }
+  const isIW29Mode = Object.keys(rawOrderMap).some(k => !k.startsWith('ORDER:') && /^\d{8,}$/.test(k))
+  filterStats.value = { rawCount, filteredCount, removed, filterOn: settings.filterComplete, isIW29Mode }
 }
 
 function setMinTable(val) {
@@ -616,7 +625,7 @@ onMounted(() => initWorker())
               <label class="toggle"><input type="checkbox" v-model="settings.ragMode"><div class="toggle-track"></div></label>
             </div>
             <div v-if="settings.ragMode" class="info-box blue" style="font-size:11px">
-              ✅ ตรวจ table type อัตโนมัติ (IW38 / IW47 / ZPM02 / ZPUCMN / Hours)<br>
+              ✅ ตรวจ table type อัตโนมัติ (IW38 / IW47 / IW29 / ZPM02 / ZPUCMN / Hours)<br>
               ✅ แปลงแต่ละ row → ประโยค 1 chunk<br>
               ✅ ดาวน์โหลดเป็น <code>.txt</code> พร้อม embed ได้เลย
             </div>
@@ -639,18 +648,18 @@ onMounted(() => initWorker())
               <div>
                 <div class="setting-sub" style="margin-bottom:5px">ต้องมี Table เหล่านี้ (Required)</div>
                 <div style="display:flex;gap:4px;flex-wrap:wrap">
-                  <button v-for="tbl in ['IW38','IW47','ZPM02','ZPUCMN','Hours']" :key="tbl" class="req-table-btn" :class="{active: requiredTables[tbl]}" @click="toggleRequired(tbl)">{{ tbl }}</button>
+                  <button v-for="tbl in ['IW29','IW38','IW47','ZPM02','ZPUCMN','Hours']" :key="tbl" class="req-table-btn" :class="{active: requiredTables[tbl]}" @click="toggleRequired(tbl)">{{ tbl }}</button>
                 </div>
               </div>
               <div v-if="filterStats" style="font-size:11px">
                 <div style="font-weight:600;color:var(--warn);margin-bottom:5px">📊 สถิติการกรอง</div>
                 <div style="display:grid;grid-template-columns:1fr auto;gap:3px 10px">
-                  <div style="color:var(--sub2)">Orders ทั้งหมด</div><div style="text-align:right"><strong style="color:var(--ink)">{{ filterStats.rawCount?.toLocaleString() }}</strong></div>
+                  <div style="color:var(--sub2)">{{ filterStats.isIW29Mode ? 'Notifications ทั้งหมด' : 'Orders ทั้งหมด' }}</div><div style="text-align:right"><strong style="color:var(--ink)">{{ filterStats.rawCount?.toLocaleString() }}</strong></div>
                   <template v-if="filterStats.filterOn">
                     <div style="color:var(--success)">✅ ผ่านการกรอง</div><div style="text-align:right"><strong style="color:var(--success)">{{ filterStats.filteredCount?.toLocaleString() }}</strong></div>
                     <div style="color:var(--danger)">❌ ถูกตัดออก</div><div style="text-align:right"><strong style="color:var(--danger)">{{ filterStats.removed?.toLocaleString() }}</strong></div>
                   </template>
-                  <template v-else><div style="color:var(--sub2);grid-column:span 2">Filter ปิดอยู่ — export ทุก Order</div></template>
+                  <template v-else><div style="color:var(--sub2);grid-column:span 2">Filter ปิดอยู่ — export ทุก {{ filterStats.isIW29Mode ? 'Notification' : 'Order' }}</div></template>
                 </div>
               </div>
             </div>
