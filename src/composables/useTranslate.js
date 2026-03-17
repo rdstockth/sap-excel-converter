@@ -61,6 +61,7 @@ export function useTranslate() {
   // ── Get PM/MO Type from a record depending on table ──
   function getPmType(rec, tableType) {
     if (tableType === 'IW38' || tableType === 'ZPM02') return (rec['Order Type'] || '').trim()
+    if (tableType === 'IW29')   return (rec['Notifictn type'] || '').trim()
     if (tableType === 'ZPUCMN') return (rec['MO Type'] || '').trim()
     if (tableType === 'Hours')  return (rec['MO type'] || '').trim()
     return null  // IW47 has no direct PM type — not filtered
