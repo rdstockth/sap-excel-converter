@@ -355,10 +355,13 @@ export function useTranslate() {
 '  • สีแตก → "paint is cracked"\n' +
 '  • สีหลุด/ล่อน → "paint is peeling"\n' +
 '  • Literal codes + UV → "Error QD75 when UV measurement at MC2"\n' +
-'  • เบิกของ Order He Cap2 → "Requisition He Cap2"\n\n' +'CRITICAL: ALL output values MUST be English only. Never output Thai characters.\n\n' +'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}.\n' +
-'The number of outputs MUST match the number of inputs.\n' +
-'Do not reorder indexes.\n' +
-'No markdown, no explanations, no extra text.\n\n' +'Input:\n' + JSON.stringify(indexedInput)
+'  • เบิกของ Order He Cap2 → "Requisition He Cap2"\n\n' +'CRITICAL: ALL output values MUST be English only. Never output Thai characters.\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value MUST contain:\n' +
+'  "s": first 6 characters of the source input text (copied exactly)\n' +
+'  "t": the rewritten English sentence\n' +
+'Example: {"0":{"s":"Belt l","t":"Belt has come loose."},"1":{"s":"Pump m","t":"Pump motor is vibrating."}}\n' +
+'The index key MUST match the input index exactly. Never reorder. No markdown. No extra text.\n\n' +
+'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
@@ -388,10 +391,13 @@ export function useTranslate() {
 '6. Spare parts: use "Requisition [quantity] [part name]"\n' +
 '7. Installation: use "Install [item]"\n' +
 '8. Correct dictionary errors: เบิก → Requisition, ใส่ → Install, ติดขัด → is jammed/stuck, ขาด → is broken.\n\n' +'HALLUCINATION GUARD:\n' +
-'Strictly use ONLY information present in the source text. Never invent anything.\n\n' +'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters.\n\n' +'IMPORTANT: Return ONLY a valid JSON object keyed by index, e.g. {"0":"...", "1":"..."}.\n' +
-'The number of outputs MUST match the number of inputs.\n' +
-'Never reorder indexes.\n' +
-'No markdown, no explanations, no extra text.\n\n' +'Input:\n' + JSON.stringify(indexedInput)
+'Strictly use ONLY information present in the source text. Never invent anything.\n\n' +'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters.\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value MUST contain:\n' +
+'  "s": first 6 characters of the source input text (copied exactly)\n' +
+'  "t": the rewritten English sentence\n' +
+'Example: {"0":{"s":"air fi","t":"Air fitting is leaking."},"1":{"s":"Repair","t":"Repair valve H/P."}}\n' +
+'The index key MUST match the input index exactly. Never reorder. No markdown. No extra text.\n\n' +
+'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
   }
 
