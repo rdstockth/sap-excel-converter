@@ -2,7 +2,7 @@
 
 > Vue 3 + Vite · Cloudflare Pages · SAP PM RAG Tool
 
-แปลงไฟล์ Excel (IW38 / IW47 / ZPM02 / ZPUCMN / Hours) เป็น JSON, JSONL, หรือ RAG Text Chunks
+แปลงไฟล์ Excel (IW38 / IW47 / IW29 / ZPM02 / ZPUCMN / Hours) เป็น JSON, JSONL, หรือ RAG Text Chunks
 พร้อมระบบ AI Translation (ไทย → อังกฤษ) และ Merge หลาย Table ตาม Order Number
 
 ---
@@ -11,7 +11,7 @@
 
 - **Excel → JSON / JSONL / RAG** — รองรับ `.xlsx`, `.xls`, `.csv`
 - **Web Worker** — parse Excel แบบ non-blocking (UI ไม่ค้าง)
-- **SAP Table Detection** — รู้จัก IW38, IW47, ZPM02, ZPUCMN, Hours อัตโนมัติ
+- **SAP Table Detection** — รู้จัก IW38, IW47, IW29, ZPM02, ZPUCMN, Hours อัตโนมัติ
 - **Merge & RAG** — รวมหลาย Table ตาม Order Number → RAG chunks
 - **Merge Filter** — กรอง Order ที่ครบ N tables / required tables
 - **AI Translation** — Thai → English ด้วย Dictionary + Fuzzy NLP + AI API
@@ -113,7 +113,7 @@ sap-excel-converter/
 │   │   ├── sharedParsing.js       # Date parsing + grid processing (shared)
 │   │   ├── excelHelpers.js        # XLSX file reading, grid extraction
 │   │   ├── tableDetect.js         # SAP table type + RAG formatters
-│   │   ├── mergeUtils.js          # Order key normalization + merge filter
+│   │   ├── mergeUtils.js          # Notification/Order key normalization + merge filter
 │   │   └── translateDict.js       # Thai maintenance dictionary + NLP engine
 │   └── workers/
 │       └── excelWorker.js         # Web Worker (imports from sharedParsing)
