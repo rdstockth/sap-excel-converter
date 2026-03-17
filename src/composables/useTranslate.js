@@ -372,30 +372,31 @@ export function useTranslate() {
       'You are a maintenance report writer for SAP work orders. The following texts are English translations produced from a Thai-English dictionary and may be literal, fragmented, or grammatically awkward.\n\n' +
 'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. They describe a broken/faulty component, a maintenance task, or spare parts requisition.\n\n' +'TASK:\n' +
 'Rewrite each item into ONE clear, natural, professional sentence suitable for SAP Notification Short Text. Make the sentence easy to understand.\n\n' +'SAP SHORT TEXT COMPATIBILITY:\n' +
-'This sentence will be used directly in the SAP "Description" field (max 40 characters preferred, never exceed 50).\n' +
+'This sentence will be used directly in the SAP \"Description\" field (max 40 characters preferred, never exceed 50).\n' +
 'Start with capital letter and end with period.\n\n' +'MAINTENANCE SENTENCE STYLE:\n' +
 'Prefer this structure when applicable:\n' +
-'"The [component] in/at/on the [location] is/has [symptom]."\n' +
+'\"The [component] in/at/on the [location] is/has [symptom].\"\n' +
 'Examples:\n' +
 'Pipe in the washing tank is leaking.\n' +
 'Sensor at the conveyor is not functioning.\n\n' +'PREPOSITION RULES:\n' +
-'Rooms / areas / buildings → "in the"\n' +
-'Floors / ceilings / walls → "on the"\n' +
-'Equipment / machines / positions → "at the"\n\n' +'EQUIPMENT CODE RULE:\n' +
-'Omit internal codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm etc.) completely. Keep only real components with digits or clear names (MC 6, UV2 unit, DL1, KD4-1/4A etc.).\n\n' +'GUIDELINES:\n' +
+'Rooms / areas / buildings → \"in the\"\n' +
+'Floors / ceilings / walls → \"on the\"\n' +
+'Equipment / machines / positions → \"at the\"\n\n' +'EQUIPMENT CODE & LOCATION RULE:\n' +
+'1. Omit internal codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm etc.) completely. Keep only real components with digits or clear names (MC 6, UV2 unit, DL1, KD4-1/4A etc.).\n' +
+'2. CRITICAL: Do NOT append machine names or location tags at the end of the sentence (e.g., DO NOT output \"on LC2.\", \"on Rx2.\", \"on RX2\"). Omit the machine location entirely for machine repair notifications.\n\n' +'GUIDELINES:\n' +
 '1. Fix grammar and word order only to make the sentence read naturally and easy to understand.\n' +
 '2. Keep extremely concise (under 15 words when possible).\n' +
 '3. Use present tense.\n' +
 '4. Preserve ALL symptoms exactly — never remove or merge.\n' +
-'5. Do NOT add any assumption, cause, location, or extra information.\n' +
-'6. Spare parts: use "Requisition [quantity] [part name]"\n' +
-'7. Installation: use "Install [item]"\n' +
+'5. Do NOT add any assumption, cause, extra information, or machine location at the end of the sentence.\n' +
+'6. Spare parts: use \"Requisition [quantity] [part name]\"\n' +
+'7. Installation: use \"Install [item]\"\n' +
 '8. Correct dictionary errors: เบิก → Requisition, ใส่ → Install, ติดขัด → is jammed/stuck, ขาด → is broken.\n\n' +'HALLUCINATION GUARD:\n' +
 'Strictly use ONLY information present in the source text. Never invent anything.\n\n' +'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value MUST contain:\n' +
-'  "s": first 6 characters of the source input text (copied exactly)\n' +
-'  "t": the rewritten English sentence\n' +
-'Example: {"0":{"s":"air fi","t":"Air fitting is leaking."},"1":{"s":"Repair","t":"Repair valve H/P."}}\n' +
+'  \"s\": first 6 characters of the source input text (copied exactly)\n' +
+'  \"t\": the rewritten English sentence\n' +
+'Example: {\"0\":{\"s\":\"air fi\",\"t\":\"Air fitting is leaking.\"},\"1\":{\"s\":\"Repair\",\"t\":\"Repair valve H/P.\"}}\n' +
 'The index key MUST match the input index exactly. Never reorder. No markdown. No extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
