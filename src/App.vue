@@ -198,10 +198,12 @@ async function downloadAll() {
 function recordsToJsonl(records) { return records.map(r => JSON.stringify(r)).join('\n') }
 function recordsToFineTuneJsonl(records, tableType) {
   const sp = settings.systemPrompt || 'You are a SAP PM expert assistant.'
+  const isNotif = tableType === 'IW29'
+  const label = isNotif ? 'Notification' : 'Work Order'
   return records.map(r => JSON.stringify({ messages: [
     { role: 'system', content: sp },
-    { role: 'user', content: 'ข้อมูล Work Order จาก SAP:\n' + recordToChunk(r, tableType) },
-    { role: 'assistant', content: 'รับทราบข้อมูล Work Order:\n' + recordToChunk(r, tableType) }
+    { role: 'user', content: 'ข้อมูล ' + label + ' จาก SAP:\n' + recordToChunk(r, tableType) },
+    { role: 'assistant', content: 'รับทราบข้อมูล ' + label + ':\n' + recordToChunk(r, tableType) }
   ]})).join('\n')
 }
 function splitJsonl(text) {
@@ -429,6 +431,8 @@ function doDebugSearch() {
   if (!debugData.value || !debugSearch.value.trim()) { debugSearchResult.value = ''; return }
   const q = normalizeKey(debugSearch.value.trim())
   const { allTableData } = debugData.value
+  const isIW29Mode = Array.isArray(allTableData['IW29']) && allTableData['IW29'].length > 0
+  const keyLabel = isIW29Mode ? 'Notification/Order key' : 'Order key'
   let html = '<div style="font-weight:600;color:var(--ink);margin-bottom:5px">ค้นหา: "' + esc(q) + '"</div>'
   let found = false
   Object.entries(allTableData).forEach(([ttype, recs]) => {
@@ -440,7 +444,7 @@ function doDebugSearch() {
     }
   })
   if (!found) {
-    html += '<div style="color:var(--danger)">❌ ไม่พบ Order key นี้ในไฟล์ใดเลย</div>'
+    html += '<div style="color:var(--danger)">❌ ไม่พบ ' + keyLabel + ' นี้ในไฟล์ใดเลย</div>'
     html += '<div style="margin-top:5px;color:var(--sub2);font-size:10px">Keys ที่มี (10 แรก):<br>'
     Object.entries(allTableData).forEach(([ttype, recs]) => {
       const sample = recs.slice(0,20).map(r => getOrderKey(r, ttype)).filter(Boolean).slice(0,10)
@@ -634,7 +638,7 @@ onMounted(() => initWorker())
             <div class="section-label">Merge Filter</div>
 
             <div class="setting-row">
-              <div><div class="setting-label">🎯 กรองเฉพาะ Order ที่ครบ</div><div class="setting-sub">ไม่รวม Order ที่มีข้อมูลใน table เดียว</div></div>
+              <div><div class="setting-label">🎯 กรองเฉพาะ Order / Notification ที่ครบ</div><div class="setting-sub">ไม่รวม Order หรือ Notification ที่มีข้อมูลใน table เดียว</div></div>
               <label class="toggle"><input type="checkbox" v-model="settings.filterComplete" @change="_lastRawOrderMap && updateFilterStats(_lastRawOrderMap, applyMergeFilter(_lastRawOrderMap, settings.filterComplete, minTableCount, requiredTables))"><div class="toggle-track"></div></label>
             </div>
 
@@ -642,7 +646,7 @@ onMounted(() => initWorker())
               <div>
                 <div class="setting-sub" style="margin-bottom:6px">ต้องมีข้อมูลอย่างน้อยกี่ Table</div>
                 <div style="display:flex;gap:5px;flex-wrap:wrap">
-                  <button v-for="n in [2,3,4,5]" :key="n" class="min-table-btn" :class="{active: minTableCount===n}" @click="setMinTable(n)">{{ n===5 ? 'ครบ 5 tables' : '≥ '+n+' tables' }}</button>
+                  <button v-for="n in [2,3,4,5,6]" :key="n" class="min-table-btn" :class="{active: minTableCount===n}" @click="setMinTable(n)">{{ n===6 ? 'ครบ 6 tables' : '≥ '+n+' tables' }}</button>
                 </div>
               </div>
               <div>
@@ -816,10 +820,10 @@ onMounted(() => initWorker())
             <span class="pill">{{ debugBodyOpen ? 'ซ่อน' : 'แสดง' }}</span>
           </div>
           <div v-if="debugBodyOpen" style="padding:12px 16px 16px">
-            <div style="font-size:11px;color:var(--sub);margin-bottom:8px;font-family:'DM Mono',monospace">ตรวจสอบ tableType &amp; Order key ที่ถูกอ่านจากแต่ละไฟล์</div>
+            <div style="font-size:11px;color:var(--sub);margin-bottom:8px;font-family:'DM Mono',monospace">ตรวจสอบ tableType &amp; Notification/Order key ที่ถูกอ่านจากแต่ละไฟล์</div>
             <div v-for="(recs, ttype) in debugData.allTableData" :key="ttype" class="debug-entry">
               <div style="font-size:12px;font-weight:600;margin-bottom:5px">{{ ttype }} — {{ recs.length.toLocaleString() }} records</div>
-              <div style="font-size:10.5px;color:var(--sub2);margin-bottom:3px;font-family:'DM Mono',monospace">Sample Order Keys:</div>
+              <div style="font-size:10.5px;color:var(--sub2);margin-bottom:3px;font-family:'DM Mono',monospace">Sample {{ ttype === 'IW29' ? 'Notification' : 'Order' }} Keys:</div>
               <div style="font-family:'DM Mono',monospace;font-size:11px;line-height:2">
                 <span v-for="(r,i) in recs.slice(0,5)" :key="i">
                   <span style="color:var(--warn)">{{ getOrderKeyRaw(r, ttype) }}</span>
@@ -830,7 +834,7 @@ onMounted(() => initWorker())
               </div>
             </div>
             <div style="margin-top:10px">
-              <input v-model="debugSearch" type="text" class="input-field" placeholder="ค้นหา Order key เช่น 50043412" style="font-size:11.5px;width:100%" @input="doDebugSearch">
+              <input v-model="debugSearch" type="text" class="input-field" placeholder="ค้นหา Order / Notification key เช่น 50043412 หรือ 10238526" style="font-size:11.5px;width:100%" @input="doDebugSearch">
               <div v-if="debugSearchResult" v-html="debugSearchResult" style="margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text)"></div>
             </div>
           </div>
