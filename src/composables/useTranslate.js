@@ -292,11 +292,19 @@ export function useTranslate() {
 '\n' +
 '  • แตก → is cracked\n' +
 '\n' +
-'  • บิ่น → is chipped\n\n' +
+'  • บิ่น → is chipped\n' +
+'\n' +
+'  • ชำรุด → is damaged / is defective / is faulty  (FAULT condition — NEVER Requisition)\n' +
+'    Example: ก๊อกฉีดน้ำชำรุด = Water spray nozzle is damaged\n' +
+'\n' +
+'  • เสียหาย → is damaged  (FAULT condition)\n\n' +
 
 'SPECIFIC PATTERN RULES:\n' +
 '  • "เบิกของ Order [part with number]": Translate as "Requisition [full part with number]". Do not split the number as quantity.\n' +
 '    Example: (LC)เบิกของ Order He Cap2 = Requisition He Cap2\n' +
+'  • "(code) [location] [part] ชำรุด/เสีย/หัก/รั่ว": FAULT condition — NEVER Requisition.\n' +
+'    Example: (LC) Polishing 2 ก๊อกฉีดน้ำชำรุด = Water spray nozzle at Polishing 2 is damaged.\n' +
+'    Note: (LC) code does NOT mean Requisition — it is just a zone code to omit.\n' +
 '\n' +
 '  • "[codes] [component] ตอน[measurement]": Translate as fault condition "[component] error when [measurement] at [location]".\n' +
 '    Example: lc pcm MC2 QD75 ตอนวัดค่าUV = Error QD75 when UV measurement at MC2\n' +
