@@ -290,7 +290,11 @@ export function useTranslate() {
 '\n' +
 '  • สีหลุด / สีล่อน → paint is peeling\n' +
 '\n' +
-'  • แตก → is cracked\n' +
+'  • แตก → is cracked / is broken  (FAULT condition — NEVER Requisition)\n' +
+'    Example: ท่อแตก = Pipe is cracked\n' +
+'\n' +
+'  • พัง → is broken / is failed / is down  (FAULT condition — NEVER Requisition)\n' +
+'    Example: มอเตอร์พัง = Motor is broken\n' +
 '\n' +
 '  • บิ่น → is chipped\n' +
 '\n' +
