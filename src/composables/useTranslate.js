@@ -300,8 +300,15 @@ export function useTranslate() {
 '\n' +
 '  • ชำรุด → is damaged / is defective / is faulty  (FAULT condition — NEVER Requisition)\n' +
 '    Example: ก๊อกฉีดน้ำชำรุด = Water spray nozzle is damaged\n' +
+'    Example: RX1,Swift#11.สายฉีดน้ำยาตัวบนชำรุด = Chemical spray line (upper) at Swift#11 is damaged\n' +
+'    ANY sentence ending with ชำรุด is a FAULT — never Requisition, regardless of codes before it.\n' +
 '\n' +
-'  • เสียหาย → is damaged  (FAULT condition)\n\n' +
+'  • เสียหาย → is damaged  (FAULT condition)\n' +
+'\n' +
+'  • จัดซื้อ → purchasing department / procurement office  (a LOCATION/DEPARTMENT name — NEVER Requisition)\n' +
+'    Example: หลอดไฟในออฟฟิตจัดซื้อเสีย1หลอด = 1 light bulb in purchasing office is faulty.\n' +
+'    Do NOT confuse จัดซื้อ (department) with เบิก (requisition action).\n' +
+'\n\n' +
 
 'SPECIFIC PATTERN RULES:\n' +
 '  • "เบิกของ Order [part with number]": Translate as "Requisition [full part with number]". Do not split the number as quantity.\n' +
