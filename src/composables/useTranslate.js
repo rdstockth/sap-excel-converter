@@ -323,53 +323,38 @@ export function useTranslate() {
   async function callAPIPolish(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a maintenance report writer for SAP work orders. The input texts are literal, fragmented English translations from a Thai dictionary. These are factory technicians’ fault reports describing a broken/faulty component, a maintenance task (fabricate/install/replace/adjust), or spare parts requisition. Always interpret through the maintenance lens.\n\n' +'TASK:\n' +
-'Rewrite each item into one clear, natural, professional maintenance sentence.\n\n' +'MAINTENANCE SENTENCE STYLE:\n' +
-'Prefer this structure when applicable:\n' +
-'"The [component] in/at/on the [location] is/has [symptom]."\n' +
+      'You are a maintenance report editor for SAP work orders. The input texts are literal, fragmented English translations produced from a Thai dictionary.\n\n' +
+'TASK:\n' +
+'Fix the sentence structure and grammar ONLY. Keep the original words as much as possible.\n' +
+'Do NOT rephrase, do NOT substitute vocabulary, do NOT reinterpret meaning.\n' +
+'Output ONE clean, correctly structured English sentence per input.\n\n' +
+'WORD PRESERVATION RULE (MOST IMPORTANT):\n' +
+'Keep every word from the original. Only change:\n' +
+'  - Word order (to fix awkward structure)\n' +
+'  - Add minimal linking words: "is", "at", "for", "in", "the", "a", "has"\n' +
+'  - Fix capitalisation and add period at end\n' +
+'  - Fix obvious typos (e.g. "repaire" → "repair", "fore" → "for")\n' +
+'Do NOT replace words with synonyms. Do NOT rewrite into a different sentence style.\n' +
 'Examples:\n' +
-'Pipe in the washing tank is leaking.\n' +
-'Sensor at the conveyor is not functioning.\n\n' +'PREPOSITION RULES:\n' +
-'Rooms / areas / buildings → "in the"\n' +
-'Floors / ceilings / walls → "on the"\n' +
-'Equipment / machines / positions → "at the"\n\n' +'EQUIPMENT CODE RULE:\n' +
-'Equipment line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm and similar short prefixes regardless of case) are internal identifiers.\n' +
-'OMIT these codes entirely whether standalone or inside brackets such as [PLP] or [LC].\n' +
-'Keep identifiers that contain digits or represent real components such as DL1, RX2, KD4-1/4A, V-groove, Bra, Swift, Block, conveyor, He Cap2, MC2, QD75.\n\n' +'GUIDELINES:\n' +
-'1. Fix grammar and word order for natural flow.\n' +
-'2. Keep concise and professional.\n' +
-'3. Use present tense.\n' +
-'4. Preserve every symptom exactly; never merge or remove any.\n' +
-'5. Stay under 20 words when possible without dropping content.\n' +
-'6. Use standard terms: is damaged, is leaking, is loose, is not functioning, is clogged, is broken.\n' +
-'7. Remove unclear standalone numbers; keep only for quantity, ID, or model.\n\n' +'HALLUCINATION GUARD:\n' +
-'Stay 100% grounded in the source text. Do not add, assume, invent, or convert faults into actions (or actions into faults).\n\n' +'FAULT / ACTION CLASSIFICATION:\n' +
-'Each sentence belongs to one of these categories:\n' +
-'  A. Fault condition\n' +
-'  B. Maintenance action\n' +
-'  C. Spare parts requisition\n' +
-'Rewrite accordingly.\n' +
-'Examples:\n' +
-'Fault → Pump motor is vibrating.\n' +
-'Action → Install valve on tank.\n' +
-'Action → Replace waste primer line at MC2.  ← "Change/Replace" is an action, NOT Requisition\n' +
-'Requisition → Requisition 2 valves.          ← ONLY when source contains เบิก\n\n' +
-'CRITICAL: Do NOT use "Requisition" for "order", "change", or "replace" — those are maintenance actions.\n' +
-'"Requisition" is reserved strictly for เบิก (spare parts request). "order [part]" → "Order [part]." not "Requisition [part]."\n\n' +'ANTI-OVERTRANSLATION RULE:\n' +
-'Do not expand meaning beyond the original sentence.\n' +
-'Example:\n' +
-'Input: Belt loose\n' +
-'Correct: Belt has come loose.\n\n' +'CONTEXT CORRECTION — if the dictionary produced incorrect word choices, fix them:\n' +
-'  • เบิก → "Requisition"\n' +
-'  • ใส่ (on equipment) → "Install" or "Add"\n' +
-'  • ติด (no ตั้ง) → "is triggered/active/stuck"\n' +
-'  • ขาด → "is severed/broken/missing"\n' +
-'  • ติดขัด → "is jammed/stuck"\n' +
-'  • ดับ (power) → "power is out/is off"\n' +
-'  • สีแตก → "paint is cracked"\n' +
-'  • สีหลุด/ล่อน → "paint is peeling"\n' +
-'  • Literal codes + UV → "Error QD75 when UV measurement at MC2"\n' +
-'  • เบิกของ Order He Cap2 → "Requisition He Cap2"\n\n' +'CRITICAL: ALL output values MUST be English only. Never output Thai characters.\n\n' +
+'"belt loose"                   → "Belt has come loose."              ✅ (add linking words only)\n' +
+'"pump motor vibrate"           → "Pump motor is vibrating."          ✅ (fix tense only)\n' +
+'"pipe washing tank leak"       → "Pipe in washing tank is leaking."  ✅ (add preposition only)\n' +
+'"spare part order"             → "Order spare part."                 ✅ (reorder words only)\n' +
+'"plate heat exchanger change"  → "Change plate heat exchanger."      ✅ (reorder words only)\n\n' +
+'EQUIPMENT CODE RULE:\n' +
+'Omit internal line/zone codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm etc.).\n' +
+'Keep identifiers with digits or real names (MC2, DL1, RX2, He Cap2, QD75 etc.).\n\n' +
+'GUIDELINES:\n' +
+'1. PRESERVE original words — do not substitute or rephrase.\n' +
+'2. Only fix: word order, grammar, typos, capitalisation, punctuation.\n' +
+'3. Add only essential linking words ("is", "for", "at", "in", "the", "has") where truly needed.\n' +
+'4. Preserve every detail exactly — never remove or merge any symptom or component.\n' +
+'5. Do NOT add any information not present in the source.\n' +
+'6. "Requisition" must appear in output ONLY when it already appears in the input. Never introduce it.\n' +
+'7. Do NOT convert "order" → "Requisition", "change" → "Replace", or make any other word substitution.\n\n' +
+'HALLUCINATION GUARD:\n' +
+'Stay 100% grounded in the source text. Never invent, assume, or substitute anything.\n\n' +
+'CRITICAL: ALL output values MUST be English only. Never output Thai characters.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value MUST contain:\n' +
 '  "s": first 6 characters of the source input text (copied exactly)\n' +
 '  "t": the rewritten English sentence\n' +
