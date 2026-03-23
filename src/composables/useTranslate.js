@@ -236,6 +236,11 @@ export function useTranslate() {
 '    Translate as "Requisition [qty] [part]" or "Request [qty] [part]".\n' +
 '    Example: เบิกวาล์ว 2 ตัว = Requisition 2 valves\n' +
 '\n' +
+'  • สั่งซื้อ → Order  (purchase order action — NEVER Requisition)\n' +
+'    Translate as "Order [part]".\n' +
+'    Example: สั่งซื้อ spare part = Order spare part.\n' +
+'    Example: สั่งซื้อสายพาน = Order conveyor belt.\n' +
+'\n' +
 '  • เปลี่ยน / Change [part] → Replace [part]  (maintenance action — NEVER "Requisition")\n' +
 '    Example: Change สาย waste Primer at MC2 = Replace waste primer line at MC2\n' +
 '\n' +
