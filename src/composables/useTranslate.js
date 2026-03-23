@@ -207,13 +207,16 @@ export function useTranslate() {
 'Each text belongs to one of these categories:\n' +
 '  A. Fault condition\n' +
 '  B. Maintenance action\n' +
-'  C. Spare parts requisition\n' +
+'  C. Spare parts requisition — ONLY when the Thai text contains เบิก or เบิกของ\n' +
 'Translate accordingly.\n' +
 'Examples:\n' +
 'Fault → Pump motor is vibrating.\n' +
 'Action → Install valve on tank.\n' +
-'Requisition → Requisition 2 valves.\n' +
-'Never convert one category into another.\n\n' +
+'Action → Replace waste primer line at MC2.  ← "Change/เปลี่ยน" = Replace (NOT Requisition)\n' +
+'Requisition → Requisition 2 valves.          ← ONLY when เบิก appears in source\n' +
+'Never convert one category into another.\n' +
+'CRITICAL: "Change", "เปลี่ยน", "order" (English) are maintenance ACTIONS — NEVER translate these as "Requisition".\n' +
+'Use "Requisition" ONLY when the source text explicitly contains เบิก or เบิกของ.\n\n' +
 
 'ANTI-OVERTRANSLATION RULE:\n' +
 'Translate only the information present in the source text.\n' +
@@ -229,9 +232,15 @@ export function useTranslate() {
 
 'THAI WORD DISAMBIGUATION — always interpret these words by maintenance context, NOT literal dictionary meaning:\n' +
 '\n' +
-'  • เบิก → spare parts request action\n' +
+'  • เบิก → spare parts request action — USE "Requisition" ONLY for this word\n' +
 '    Translate as "Requisition [qty] [part]" or "Request [qty] [part]".\n' +
 '    Example: เบิกวาล์ว 2 ตัว = Requisition 2 valves\n' +
+'\n' +
+'  • เปลี่ยน / Change [part] → Replace [part]  (maintenance action — NEVER "Requisition")\n' +
+'    Example: Change สาย waste Primer at MC2 = Replace waste primer line at MC2\n' +
+'\n' +
+'  • order (English word in source) → treat as a maintenance action or work order — NEVER "Requisition"\n' +
+'    Example: order drive for sato rewinder = Order drive for sato rewinder\n' +
 '\n' +
 '  • ใส่ (component added to equipment) → install / fit / add\n' +
 '    Example: ใส่ Item รถเข็น = Install item on cart\n' +
@@ -343,7 +352,10 @@ export function useTranslate() {
 'Examples:\n' +
 'Fault → Pump motor is vibrating.\n' +
 'Action → Install valve on tank.\n' +
-'Requisition → Requisition 2 valves.\n\n' +'ANTI-OVERTRANSLATION RULE:\n' +
+'Action → Replace waste primer line at MC2.  ← "Change/Replace" is an action, NOT Requisition\n' +
+'Requisition → Requisition 2 valves.          ← ONLY when source contains เบิก\n\n' +
+'CRITICAL: Do NOT use "Requisition" for "order", "change", or "replace" — those are maintenance actions.\n' +
+'"Requisition" is reserved strictly for เบิก (spare parts request). "order [part]" → "Order [part]." not "Requisition [part]."\n\n' +'ANTI-OVERTRANSLATION RULE:\n' +
 'Do not expand meaning beyond the original sentence.\n' +
 'Example:\n' +
 'Input: Belt loose\n' +
@@ -371,30 +383,38 @@ export function useTranslate() {
   async function callAPIEngRewrite(texts, endpoint) {
     const indexedInput = _buildIndexed(texts)
     const prompt =
-      'You are a maintenance report writer for SAP work orders. The following texts are English translations produced from a Thai-English dictionary and may be literal, fragmented, or grammatically awkward.\n\n' +
-'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. They describe a broken/faulty component, a maintenance task, or spare parts requisition.\n\n' +'TASK:\n' +
-'Rewrite each item into ONE clear, natural, professional sentence suitable for SAP Notification Short Text. Make the sentence easy to understand.\n\n' +'SAP SHORT TEXT COMPATIBILITY:\n' +
-'This sentence will be used directly in the SAP \"Description\" field (max 40 characters preferred, never exceed 50).\n' +
-'Start with capital letter and end with period.\n\n' +'MAINTENANCE SENTENCE STYLE:\n' +
-'Prefer this structure when applicable:\n' +
-'\"The [component] in/at/on the [location] is/has [symptom].\"\n' +
+      'You are a maintenance report editor for SAP work orders. The following texts are English maintenance descriptions that may be grammatically awkward or poorly structured.\n\n' +
+'CONTEXT: These texts are maintenance fault reports submitted by factory technicians. They describe a broken/faulty component, a maintenance task, or spare parts requisition.\n\n' +
+'TASK:\n' +
+'Fix the sentence structure and grammar ONLY. Keep the original words as much as possible.\n' +
+'Do NOT rephrase, do NOT substitute vocabulary, do NOT reinterpret meaning.\n' +
+'Output ONE clean, correctly structured English sentence per input.\n\n' +
+'WORD PRESERVATION RULE (MOST IMPORTANT):\n' +
+'Keep every word from the original. Only change:\n' +
+'  - Word order (to fix awkward structure)\n' +
+'  - Add minimal linking words: "is", "at", "for", "in", "the", "a"\n' +
+'  - Fix capitalisation and add period at end\n' +
+'Do NOT replace words with synonyms. Do NOT rewrite into a different sentence style.\n' +
 'Examples:\n' +
-'Pipe in the washing tank is leaking.\n' +
-'Sensor at the conveyor is not functioning.\n\n' +'PREPOSITION RULES:\n' +
-'Rooms / areas / buildings → \"in the\"\n' +
-'Floors / ceilings / walls → \"on the\"\n' +
-'Equipment / machines / positions → \"at the\"\n\n' +'EQUIPMENT CODE & LOCATION RULE:\n' +
-'1. Omit internal codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm etc.) completely. Keep only real components with digits or clear names (MC 6, UV2 unit, DL1, KD4-1/4A etc.).\n' +
-'2. CRITICAL: Do NOT append machine names or location tags at the end of the sentence (e.g., DO NOT output \"on LC2.\", \"on Rx2.\", \"on RX2\"). Omit the machine location entirely for machine repair notifications.\n\n' +'GUIDELINES:\n' +
-'1. Fix grammar and word order only to make the sentence read naturally and easy to understand.\n' +
-'2. Keep extremely concise (under 15 words when possible).\n' +
-'3. Use present tense.\n' +
-'4. Preserve ALL symptoms exactly — never remove or merge.\n' +
-'5. Do NOT add any assumption, cause, extra information, or machine location at the end of the sentence.\n' +
-'6. Spare parts: use \"Requisition [quantity] [part name]\"\n' +
-'7. Installation: use \"Install [item]\"\n' +
-'8. Correct dictionary errors: เบิก → Requisition, ใส่ → Install, ติดขัด → is jammed/stuck, ขาด → is broken.\n\n' +'HALLUCINATION GUARD:\n' +
-'Strictly use ONLY information present in the source text. Never invent anything.\n\n' +'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters.\n\n' +
+'"repaire air conditioner"      → "Repair air conditioner."              ✅ (fix typo only)\n' +
+'"drive fore sato rewinder"     → "Drive for sato rewinder."             ✅ (fix typo only)\n' +
+'"spare part order"             → "Order spare part."                    ✅ (reorder words)\n' +
+'"Machine frequently stalls"    → "Machine frequently stalls."           ✅ (add period only)\n' +
+'"plate heat exchanger change"  → "Change plate heat exchanger."         ✅ (reorder words)\n\n' +
+'SAP SHORT TEXT COMPATIBILITY:\n' +
+'Start with capital letter and end with period.\n\n' +
+'EQUIPMENT CODE RULE:\n' +
+'Omit internal codes (LC, RX, PLP, DL, IW, ZPM, PCM, lc, pcm etc.). Keep codes with digits or real names (MC2, DL1, UV2 etc.).\n\n' +
+'GUIDELINES:\n' +
+'1. PRESERVE original words — do not substitute or rephrase.\n' +
+'2. Only fix: word order, grammar, typos, capitalisation, punctuation.\n' +
+'3. Add only essential linking words ("is", "for", "at", "the") where truly needed.\n' +
+'4. Do NOT add any information not present in the source.\n' +
+'5. Do NOT change "order" → "Requisition", "change" → "Replace", or any other word substitution.\n' +
+'6. "Requisition" must appear in output ONLY when it already appears in the input. Never introduce it.\n\n' +
+'HALLUCINATION GUARD:\n' +
+'Strictly use ONLY words present in the source text. Never invent or substitute anything.\n\n' +
+'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters.\n\n' +
 'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value MUST contain:\n' +
 '  \"s\": first 6 characters of the source input text (copied exactly)\n' +
 '  \"t\": the rewritten English sentence\n' +
