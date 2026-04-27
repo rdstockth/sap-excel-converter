@@ -1,6 +1,19 @@
 import { ref, reactive } from 'vue'
 import { dictTranslate, hasThai, resetFuzzyHits, _fuzzyHits } from '../utils/translateDict.js'
 
+// ── Strict Thai Unicode guard (used throughout this module) ──
+const THAI_REGEX = /[\u0E00-\u0E7F]/
+
+// ── Strip markdown wrappers, surrounding quotes, and stray newlines AI may add ──
+function _cleanOutput(str) {
+  if (typeof str !== 'string') return str
+  return str
+    .replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '')  // code fences
+    .replace(/^["'`]+|["'`]+$/g, '')                          // surrounding quotes/backticks
+    .replace(/\n+/g, ' ')                                     // collapse newlines to space
+    .trim()
+}
+
 export function useTranslate() {
   const translateFields = reactive(new Set([
     'IW29::Description',
@@ -89,15 +102,22 @@ export function useTranslate() {
     })
     if (!res.ok) throw new Error('API HTTP ' + res.status)
     const data = await res.json()
-    const raw = (data.choices?.[0]?.message?.content || '')
+    let raw = (data.choices?.[0]?.message?.content || '')
       .replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
-      .replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/, '').trim()
+
+    // ── Fallback JSON extraction: strip markdown fences if present ──
+    raw = raw.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim()
 
     let parsed
     try {
       parsed = JSON.parse(raw)
     } catch (e) {
-      throw new Error('API returned non-JSON: ' + raw.slice(0, 120))
+      // Second attempt: find first { ... } block in case of extra prose
+      const match = raw.match(/\{[\s\S]*\}/)
+      if (match) {
+        try { parsed = JSON.parse(match[0]) } catch (_) {}
+      }
+      if (!parsed) throw new Error('API returned non-JSON: ' + raw.slice(0, 120))
     }
 
     // ── Normalise response → ordered array ──
@@ -112,33 +132,23 @@ export function useTranslate() {
       if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
         parsed = inner
       } else if (inner && Array.isArray(inner)) {
-        // Array inside wrapper is equally unsafe — reject
         throw new Error('[Translate] AI returned array inside wrapper — index alignment cannot be guaranteed. Retrying.')
       }
 
-      // ── Re-assemble in original index order with source-echo validation ──
+      // ── Re-assemble in original index order ──
+      // Supports both new format ("0": "string") and legacy format ("0": {"s":"...", "t":"..."})
       const result = texts.map((origText, i) => {
         const val = parsed[String(i)] ?? parsed[i] ?? null
 
-        // Support source-echo format: { "0": { "s": "...", "t": "..." } }
+        // Legacy source-echo format: { "0": { "s": "...", "t": "..." } }
         if (val && typeof val === 'object' && typeof val.t === 'string') {
-          if (typeof val.s === 'string') {
-            const expectedPrefix = origText.trim().slice(0, 6)
-            const returnedPrefix = val.s.trim().slice(0, 6)
-            if (expectedPrefix && returnedPrefix && expectedPrefix !== returnedPrefix) {
-              console.warn(
-                '[Translate] Source-echo mismatch at index', i,
-                '— expected:', JSON.stringify(expectedPrefix),
-                'got:', JSON.stringify(returnedPrefix),
-                '— entry rejected'
-              )
-              return null
-            }
-          }
-          return val.t
+          return _cleanOutput(val.t)
         }
 
-        return typeof val === 'string' ? val : null
+        // New preferred format: { "0": "English string" }
+        if (typeof val === 'string') return _cleanOutput(val)
+
+        return null
       })
 
       const missing = result.filter(v => v === null).length
@@ -332,12 +342,14 @@ export function useTranslate() {
 'Examples: ตัวอาร์ = letter R, ตัวบี = letter B, ตัวเอ็ม = letter M.\n' +
 'Example: ตัวอาร์ไม่สมบูรณ์ = Letter R is incomplete.\n\n' +
 
-'CRITICAL: ALL output values MUST be English only. Never output Thai characters in results.\n\n' +
+'⛔ CRITICAL OUTPUT RULES:\n' +
+'1. ALL output values MUST be plain English strings ONLY. NEVER output Thai characters in values.\n' +
+'2. Values must be plain strings — NOT objects, NOT arrays, NOT nested JSON.\n' +
+'3. Do NOT wrap values in quotes inside JSON (the JSON serialiser handles that).\n' +
+'4. Do NOT add markdown, code fences, or any extra text outside the JSON object.\n\n' +
 
-'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value must contain:\n' +
-'  "s": first 6 characters of the source input\n' +
-'  "t": the English translation\n' +
-'Example: {"0":{"s":"ลาเบล","t":"Label is stuck"},"1":{"s":"เครื่อง","t":"Machine is not working"}}\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value is a plain English string.\n' +
+'Example: {"0":"Pipe in washing tank is leaking.","1":"Belt has come loose.","2":"Requisition 2 valves."}\n' +
 'The index key MUST match the input index exactly. Never reorder. No markdown. No extra text.\n\n' +
 
 'Input:\n' + JSON.stringify(indexedInput)
@@ -379,11 +391,12 @@ export function useTranslate() {
 '7. Do NOT convert "order" → "Requisition", "change" → "Replace", or make any other word substitution.\n\n' +
 'HALLUCINATION GUARD:\n' +
 'Stay 100% grounded in the source text. Never invent, assume, or substitute anything.\n\n' +
-'CRITICAL: ALL output values MUST be English only. Never output Thai characters.\n\n' +
-'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value MUST contain:\n' +
-'  "s": first 6 characters of the source input text (copied exactly)\n' +
-'  "t": the rewritten English sentence\n' +
-'Example: {"0":{"s":"Belt l","t":"Belt has come loose."},"1":{"s":"Pump m","t":"Pump motor is vibrating."}}\n' +
+'⛔ CRITICAL OUTPUT RULES:\n' +
+'1. ALL output values MUST be plain English strings ONLY. NEVER output Thai characters in values.\n' +
+'2. Values must be plain strings — NOT objects, NOT arrays, NOT nested JSON.\n' +
+'3. Do NOT add markdown, code fences, or any extra text outside the JSON object.\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value is a plain English string.\n' +
+'Example: {"0":"Belt has come loose.","1":"Pump motor is vibrating."}\n' +
 'The index key MUST match the input index exactly. Never reorder. No markdown. No extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -424,11 +437,12 @@ export function useTranslate() {
 '6. "Requisition" must appear in output ONLY when it already appears in the input. Never introduce it.\n\n' +
 'HALLUCINATION GUARD:\n' +
 'Strictly use ONLY words present in the source text. Never invent or substitute anything.\n\n' +
-'CRITICAL: ALL output values MUST be in English ONLY. Do NOT return Thai characters.\n\n' +
-'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value MUST contain:\n' +
-'  \"s\": first 6 characters of the source input text (copied exactly)\n' +
-'  \"t\": the rewritten English sentence\n' +
-'Example: {\"0\":{\"s\":\"air fi\",\"t\":\"Air fitting is leaking.\"},\"1\":{\"s\":\"Repair\",\"t\":\"Repair valve H/P.\"}}\n' +
+'⛔ CRITICAL OUTPUT RULES:\n' +
+'1. ALL output values MUST be plain English strings ONLY. NEVER output Thai characters in values.\n' +
+'2. Values must be plain strings — NOT objects, NOT arrays, NOT nested JSON.\n' +
+'3. Do NOT add markdown, code fences, or any extra text outside the JSON object.\n\n' +
+'IMPORTANT: Return ONLY a valid JSON object keyed by index. Each value is a plain English string.\n' +
+'Example: {"0":"Air fitting is leaking.","1":"Repair valve H/P."}\n' +
 'The index key MUST match the input index exactly. Never reorder. No markdown. No extra text.\n\n' +
 'Input:\n' + JSON.stringify(indexedInput)
     return _fetchAPI(texts, endpoint, prompt)
@@ -513,8 +527,8 @@ export function useTranslate() {
         let thaiLeakCount = 0
         batch.forEach((origText, i) => {
           if (results[i]) {
-            // ── Guard: reject result if AI returned Thai text ──
-            if (hasThai(results[i])) {
+            // ── Strict Thai guard: reject result if AI returned any Thai Unicode character ──
+            if (THAI_REGEX.test(results[i]) || hasThai(results[i])) {
               console.warn('[Translate] AI returned Thai in output — rejected:', results[i])
               thaiLeakCount++
               failedBatch.push(origText)
@@ -640,7 +654,8 @@ export function useTranslate() {
       uniqueThai.forEach(text => {
         const result = dictTranslate(text)
         translateCache.value[text] = result
-        if (!hasThai(result)) {
+        // ── Improvement #5: reject dict result if it still contains ANY Thai Unicode ──
+        if (!THAI_REGEX.test(result) && !hasThai(result)) {
           dictHit++
           aiLog.value.push({ original: text, translated: result, source: 'dict', batchNo: 0, ts })
           if (dictPolish) dictResults.push({ original: text, translated: result })
@@ -754,7 +769,7 @@ export function useTranslate() {
         const cache = cacheTarget || translateCache
         batch.forEach((origText, i) => {
           if (results[i]) {
-            if (hasThai(results[i])) {
+            if (THAI_REGEX.test(results[i]) || hasThai(results[i])) {
               console.warn('[Translate] ' + label + ': AI returned Thai — rejected:', results[i])
               stillFailed.push(origText)
               return
