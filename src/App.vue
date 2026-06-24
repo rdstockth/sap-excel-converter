@@ -83,6 +83,22 @@ const settings = reactive({
   maxRetries:    2,
 })
 
+// ── AI API Endpoint presets ──
+const aiEndpointPresets = [
+  { label: '🇹🇭 ThaiLLM (default)', value: 'https://thaillm.setthapong-pasavet.workers.dev/' },
+  { label: '🛠️ SAP PM AI',          value: 'https://sap-pm-ai.setthapong-pasavet.workers.dev/' },
+]
+const aiEndpointSelect = computed({
+  get() {
+    const found = aiEndpointPresets.find(p => p.value === settings.aiApiEndpoint)
+    return found ? found.value : 'custom'
+  },
+  set(val) {
+    if (val === 'custom') return  // keep current settings.aiApiEndpoint, let user type below
+    settings.aiApiEndpoint = val
+  }
+})
+
 // ── ENG Rewrite PM Type Filter ──
 const engRewritePmTypes = reactive(new Set(['PM01', 'PM06', 'PM09', 'PM11']))
 function togglePmType(t) {
@@ -733,8 +749,12 @@ onMounted(() => initWorker())
 
               <div>
                 <div class="setting-sub" style="margin-bottom:5px">🔗 AI API Endpoint</div>
-                <div class="api-endpoint-row">
-                  <input type="text" v-model="settings.aiApiEndpoint" class="input-field" placeholder="https://your-worker.workers.dev/" style="flex:1;font-size:10.5px">
+                <div class="api-endpoint-row" style="flex-direction:column;align-items:stretch;gap:6px">
+                  <select v-model="aiEndpointSelect" style="width:100%">
+                    <option v-for="opt in aiEndpointPresets" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    <option value="custom">✏️ กำหนดเอง (Custom URL)</option>
+                  </select>
+                  <input v-if="aiEndpointSelect === 'custom'" type="text" v-model="settings.aiApiEndpoint" class="input-field" placeholder="https://your-worker.workers.dev/" style="font-size:10.5px">
                 </div>
                 <div style="font-size:10px;color:var(--sub2);margin-top:3px;font-family:'DM Mono',monospace">Compatible กับ OpenAI Chat Completions format</div>
               </div>
