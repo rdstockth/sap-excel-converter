@@ -111,6 +111,7 @@ const minTableCount = ref(3)
 const requiredTables = reactive({ IW38: true, IW47: false, IW29: false, ZPM02: false, ZPUCMN: false, Hours: false })
 const filterStats    = ref(null)
 let _lastRawOrderMap = null
+let _lastMergeIsIW29Mode = false
 
 // ── Progress ──
 const progress = reactive({ show: false, pct: 0, label: '' })
@@ -348,6 +349,7 @@ async function mergeAndRag() {
     progress.label = 'กำลัง Merge...'
     const rawOrderMap = buildOrderMap(allTableData)
     _lastRawOrderMap  = rawOrderMap
+    _lastMergeIsIW29Mode = Array.isArray(allTableData['IW29']) && allTableData['IW29'].length > 0
     refreshMinTableStats(rawOrderMap)
     const filteredOrderMap = applyMergeFilter(rawOrderMap, settings.filterComplete, minTableCount.value, requiredTables)
     updateFilterStats(rawOrderMap, filteredOrderMap)
@@ -416,7 +418,7 @@ function updateFilterStats(rawOrderMap, filteredOrderMap) {
   const rawCount = Object.keys(rawOrderMap).length
   const filteredCount = Object.keys(filteredOrderMap).length
   const removed = rawCount - filteredCount
-  const isIW29Mode = Object.keys(rawOrderMap).some(k => !k.startsWith('ORDER:') && /^\d{8,}$/.test(k))
+  const isIW29Mode = _lastMergeIsIW29Mode
   filterStats.value = { rawCount, filteredCount, removed, filterOn: settings.filterComplete, isIW29Mode }
 }
 
