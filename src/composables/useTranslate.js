@@ -653,9 +653,10 @@ export function useTranslate() {
       setStatus('📖 Dictionary pass...', uniqueThai.length + ' unique texts', 5)
       uniqueThai.forEach(text => {
         const result = dictTranslate(text)
-        translateCache.value[text] = result
-        // ── Improvement #5: reject dict result if it still contains ANY Thai Unicode ──
+        // Cache only complete English results. Partial dict output containing Thai
+        // must remain eligible for the AI pass on this and future runs.
         if (!THAI_REGEX.test(result) && !hasThai(result)) {
+          translateCache.value[text] = result
           dictHit++
           aiLog.value.push({ original: text, translated: result, source: 'dict', batchNo: 0, ts })
           if (dictPolish) dictResults.push({ original: text, translated: result })
