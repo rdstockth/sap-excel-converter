@@ -110,7 +110,7 @@ export function useWorker() {
 
         reader.onload = e => {
           try {
-            const result = parseExcelBuffer(e.target.result, autoHeader)
+            const result = parseExcelBuffer(e.target.result, autoHeader, file.name)
             setReady()
             resolve(result)
           } catch (err) {
